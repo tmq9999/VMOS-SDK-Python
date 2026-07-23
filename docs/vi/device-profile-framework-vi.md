@@ -118,3 +118,22 @@ import, rollback. Mỗi pad ghi lại profile+version đang áp để cả fleet
 **Chứng minh Tầng 2 end-to-end trước** — một lần đổi IMEI/GAID thấy được trong app
 device-info — **trước** khi refactor lớn. Profile core (P1) chủ yếu phía SDK nên
 làm song song được, nhưng không xây framework trên một hook chưa kiểm chứng.
+
+## Phụ lục — P1 trong code (đã có)
+
+Profile core nằm ở `vmos.profile`:
+
+```python
+from vmos.profile import generate_profile, validate
+p = generate_profile("pixel10pro", country="VN", operator="Viettel",
+                     base_adi="Pixel 7 Pro", target_apps=["com.liuzh.deviceinfo"], seed=42)
+issues = validate(p)              # [] hoặc [{level, field, message}, ...]
+p.save("vmos_profile.json")       # JSON chuẩn — nguồn sự thật
+dp = p.to_device_profile()        # đầu vào Tầng 1 cho apply_profile()
+props = p.identity_props()        # map persist.vmos.spoof.* cho Tầng 2
+```
+
+- CLI: `python examples/14_generate_profile.py --model pixel10pro --country VN --operator Viettel --out vmos_profile.json`
+- Mẫu: [`profiles/example-pixel10pro-vn.json`](../../profiles/example-pixel10pro-vn.json)
+- Dữ liệu tham chiếu: model `pixel10pro | pixel10 | pixel10proxl`; quốc gia `VN | US | GB` (MCC/MNC chính xác).
+- Trung thực: **TAC và display là mẫu chưa kiểm chứng** (thay bằng giá trị thật cho production); `validate()` cảnh báo TAC generic. Fingerprint đã vetted (Pixel-Props).

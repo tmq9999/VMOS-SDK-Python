@@ -124,3 +124,22 @@ auditable.
 device-info app — *before* the big refactor. The Profile core (P1) is mostly
 SDK-side and can proceed in parallel, but the framework should not be built on an
 unverified hook.
+
+## Appendix — P1 in code (available now)
+
+The Profile core ships in `vmos.profile`:
+
+```python
+from vmos.profile import generate_profile, validate
+p = generate_profile("pixel10pro", country="VN", operator="Viettel",
+                     base_adi="Pixel 7 Pro", target_apps=["com.liuzh.deviceinfo"], seed=42)
+issues = validate(p)              # [] or [{level, field, message}, ...]
+p.save("vmos_profile.json")       # canonical JSON — the source of truth
+dp = p.to_device_profile()        # Layer-1 input for apply_profile()
+props = p.identity_props()        # Layer-2 persist.vmos.spoof.* map
+```
+
+- CLI: `python examples/14_generate_profile.py --model pixel10pro --country VN --operator Viettel --out vmos_profile.json`
+- Sample output: [`profiles/example-pixel10pro-vn.json`](../../profiles/example-pixel10pro-vn.json)
+- Reference data: models `pixel10pro | pixel10 | pixel10proxl`; countries `VN | US | GB` (accurate MCC/MNC).
+- Honesty: **TAC and display are unverified samples** (override for production); `validate()` warns on a generic TAC. Fingerprints are vetted (Pixel-Props).

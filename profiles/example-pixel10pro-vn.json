@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "name": "Pixel 10 Pro / Viettel / VN",
+    "version": 1,
+    "base_adi": "Pixel 7 Pro",
+    "model_key": "pixel10pro",
+    "created_at": "2026-07-23T23:50:16Z",
+    "tac_verified": false,
+    "display_verified": false
+  },
+  "build": {
+    "brand": "google",
+    "manufacturer": "Google",
+    "model": "Pixel 10 Pro",
+    "device": "blazer",
+    "product": "blazer",
+    "fingerprint": "google/blazer/blazer:17/CP2A.260705.006/15641320:user/release-keys",
+    "build_id": "CP2A.260705.006",
+    "release": "17",
+    "sdk": 37,
+    "security_patch": "2026-07-05",
+    "serial": "ba6b57d84953189e"
+  },
+  "telephony": {
+    "imei": [
+      "357806627384034"
+    ],
+    "meid": "",
+    "imsi": "452046015869114",
+    "iccid": "8984043469182046956",
+    "line1": "",
+    "mcc_mnc": "45204",
+    "operator": "Viettel",
+    "sim_country_iso": "vn"
+  },
+  "identity": {
+    "android_id": "a43153a1fa45ae0f",
+    "gaid": "fdc57634-08a9-42a4-b190-bf90a92dfe6f",
+    "oaid": "",
+    "gsf_id": "4d9d18273da3b7a6",
+    "media_drm_id": "aa2afb59a7bd9c084e92c1a0ec3d00de"
+  },
+  "network": {
+    "wifi_mac": "0e:36:51:dd:d5:d4",
+    "bssid": "06:86:28:01:00:7f",
+    "ssid": ""
+  },
+  "display": {
+    "width_px": 1344,
+    "height_px": 2992,
+    "density_dpi": 480,
+    "refresh_rate": 120
+  },
+  "locale": {
+    "language": "vi",
+    "country": "VN",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "features": {},
+  "runtime": {
+    "target_apps": [
+      "com.liuzh.deviceinfo",
+      "ru.andr7e.deviceinfohw"
+    ],
+    "enabled_sections": [
+      "build",
+      "telephony",
+      "identity",
+      "network",
+      "display",
+      "locale"
+    ]
+  },
+  "schema_version": "1.0"
+}

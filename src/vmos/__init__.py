@@ -39,6 +39,7 @@ from .exceptions import (
     VMOSRateLimitError,
 )
 from .models import APIResponse
+from .profile import Profile, generate_profile, validate as validate_profile
 from .spoof import DeviceProfile, apply_profile, verify_profile
 
 __all__ = [
@@ -58,4 +59,7 @@ __all__ = [
     "DeviceProfile",
     "apply_profile",
     "verify_profile",
+    "Profile",
+    "generate_profile",
+    "validate_profile",
 ]
