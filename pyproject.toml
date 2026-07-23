@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vmos-cloud-sdk"
+version = "1.0.0"
+description = "Complete Python SDK for the VMOS Cloud Server OpenAPI (cloud Android phone instances) - all 152 endpoints, V2 signing, sync + async clients."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "tmq9999" }]
+keywords = ["vmos", "cloud phone", "android", "openapi", "sdk", "automation"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = ["httpx>=0.24,<1.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "respx>=0.21"]
+
+[project.urls]
+Homepage = "https://github.com/tmq9999/VMOS-SDK-Python"
+Documentation = "https://github.com/tmq9999/VMOS-SDK-Python/tree/main/docs"
+"API Reference (official)" = "https://cloud.vmoscloud.com/vmoscloud/doc/en/server/OpenAPI.html"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vmos"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

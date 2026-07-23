@@ -1,0 +1,4760 @@
+{
+ "/vcpcloud/api/padApi/updateSIM": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "update_sim",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify SIM Card Information Based on Country Code",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "country_code",
+    "api": "countryCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "props",
+    "api": "props",
+    "required": false,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/uploadFileV3": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "upload_file_v3",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "File Upload via Link Directly",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "auto_install",
+    "api": "autoInstall",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "file_unique_id",
+    "api": "fileUniqueId",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "customize_file_path",
+    "api": "customizeFilePath",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "file_name",
+    "api": "fileName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "package_name",
+    "api": "packageName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "url",
+    "api": "url",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "md5",
+    "api": "md5",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "is_authorization",
+    "api": "isAuthorization",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "icon_path",
+    "api": "iconPath",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/batchUploadFile": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "batch_upload_file",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Upload Files",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "list",
+    "api": "list",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/listInstalledApp": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "list_installed_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Real-Time Query Installed Apps List",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "app_name",
+    "api": "appName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/setKeepAliveApp": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "set_keep_alive_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Set App Keep-Alive",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "apply_all_instances",
+    "api": "applyAllInstances",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "app_infos",
+    "api": "appInfos",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/addUserRom": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "add_user_rom",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Upload User Image",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "name",
+    "api": "name",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "update_log",
+    "api": "updateLog",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "android_version",
+    "api": "androidVersion",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "version",
+    "api": "version",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "download_url",
+    "api": "downloadUrl",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "package_size",
+    "api": "packageSize",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/installApp": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "install_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Application Installation",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "apps",
+    "api": "apps",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/startApp": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "start_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "App Start",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pkg_name",
+    "api": "pkgName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/stopApp": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "stop_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Stop App",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pkg_name",
+    "api": "pkgName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/restartApp": {
+  "module": "apps",
+  "sync_class": "AppsAPI",
+  "async_class": "AsyncAppsAPI",
+  "method": "restart_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Application Restart",
+  "category": "Application Management",
+  "params": [
+   {
+    "py": "pkg_name",
+    "api": "pkgName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scripts/list": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scripts_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Flow Script List",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "category",
+    "api": "category",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "platform",
+    "api": "platform",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scripts/get": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scripts_get",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Flow Script Details",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "script_id",
+    "api": "scriptId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/tasks/batch-dispatch": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "tasks_batch_dispatch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Dispatch Flow Task",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "script_id",
+    "api": "scriptId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "params",
+    "api": "params",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "items",
+    "api": "items",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/tasks/list": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "tasks_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Flow Task List",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "start_time",
+    "api": "startTime",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "end_time",
+    "api": "endTime",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/tasks/get": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "tasks_get",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Flow Task Details",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/tasks/logs": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "tasks_logs",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Flow Task Logs",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/tasks/cancel": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "tasks_cancel",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Cancel Flow Task",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/list": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account List",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "platform",
+    "api": "platform",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "group_id",
+    "api": "groupId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "status",
+    "api": "status",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "keyword",
+    "api": "keyword",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "device_bound",
+    "api": "deviceBound",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "sort_by",
+    "api": "sortBy",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "sort_dir",
+    "api": "sortDir",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/get": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_get",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account Details",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/snapshots": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_snapshots",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account Data Snapshots",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/works": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_works",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account Works List",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/work-snapshots": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_work_snapshots",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account Work Data Snapshots",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "work_id",
+    "api": "workId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/groups/list": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_groups_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account Group List",
+  "category": "Flow Automation (RPA)",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/automation/accounts/operations/batch": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_operations_batch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Trigger Account Operation",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "script_id",
+    "api": "scriptId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "account_ids",
+    "api": "accountIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "task_name",
+    "api": "taskName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "shared_options",
+    "api": "sharedOptions",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "per_account_options",
+    "api": "perAccountOptions",
+    "required": false,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/scheduled-tasks/batch": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_scheduled_tasks_batch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Account Batch Scheduled Tasks",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "script_id",
+    "api": "scriptId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "account_ids",
+    "api": "accountIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "cron_expr",
+    "api": "cronExpr",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "one_shot",
+    "api": "oneShot",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "enabled",
+    "api": "enabled",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "task_name",
+    "api": "taskName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "shared_options",
+    "api": "sharedOptions",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "per_account_options",
+    "api": "perAccountOptions",
+    "required": false,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/create": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_create",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Create Account",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "platform",
+    "api": "platform",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "username",
+    "api": "username",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "password",
+    "api": "password",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "handle",
+    "api": "handle",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "twofa_secret",
+    "api": "twofaSecret",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "email",
+    "api": "email",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "email_password",
+    "api": "emailPassword",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "group_id",
+    "api": "groupId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "country",
+    "api": "country",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "note",
+    "api": "note",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "tags",
+    "api": "tags",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/bind": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_bind",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Bind Instance",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "force",
+    "api": "force",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/unbind": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_unbind",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Unbind Instance",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/delete": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_delete",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Delete Account",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/accounts/group": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "accounts_group",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Move Account Group",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "account_id",
+    "api": "accountId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "group_id",
+    "api": "groupId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scheduled-tasks/list": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scheduled_tasks_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Scheduled Task List",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scheduled-tasks/create": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scheduled_tasks_create",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Create Scheduled Task",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_name",
+    "api": "taskName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "script_id",
+    "api": "scriptId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "cron_expr",
+    "api": "cronExpr",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "one_shot",
+    "api": "oneShot",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "params",
+    "api": "params",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "enabled",
+    "api": "enabled",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scheduled-tasks/update": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scheduled_tasks_update",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Update Scheduled Task",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "task_name",
+    "api": "taskName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "script_id",
+    "api": "scriptId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "cron_expr",
+    "api": "cronExpr",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "one_shot",
+    "api": "oneShot",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "params",
+    "api": "params",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "enabled",
+    "api": "enabled",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scheduled-tasks/toggle": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scheduled_tasks_toggle",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Toggle Scheduled Task",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "enabled",
+    "api": "enabled",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/automation/scheduled-tasks/delete": {
+  "module": "automation",
+  "sync_class": "AutomationAPI",
+  "async_class": "AsyncAutomationAPI",
+  "method": "scheduled_tasks_delete",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Delete Scheduled Task",
+  "category": "Flow Automation (RPA)",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getDynamicGoodService": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "get_dynamic_good_service",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query Dynamic Proxy Product List",
+  "category": "Dynamic Proxy Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getDynamicProxyRegion": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "get_dynamic_proxy_region",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query Dynamic Proxy Region List",
+  "category": "Dynamic Proxy Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/queryCurrentTrafficBalance": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "query_current_traffic_balance",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Get Dynamic Proxy Current Balance",
+  "category": "Dynamic Proxy Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getDynamicProxyHost": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "get_dynamic_proxy_host",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query Supported Server Regions",
+  "category": "Dynamic Proxy Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/buyDynamicProxy": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "buy_dynamic_proxy",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Purchase Dynamic Proxy Traffic Package",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "good_id",
+    "api": "goodId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "good_num",
+    "api": "goodNum",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "auto_renew_order",
+    "api": "autoRenewOrder",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/createProxy": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "create_proxy",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Create Dynamic Proxy",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "city",
+    "api": "city",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "country_code",
+    "api": "countryCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "good_num",
+    "api": "goodNum",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "proxy_host",
+    "api": "proxyHost",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "proxy_type",
+    "api": "proxyType",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "proxy_use_type",
+    "api": "proxyUseType",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "state",
+    "api": "state",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "time",
+    "api": "time",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getProxys": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "get_proxys",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Get Proxys",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "rows",
+    "api": "rows",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getDynamicProxyOrders": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "get_dynamic_proxy_orders",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get Dynamic Proxy Orders",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "rows",
+    "api": "rows",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "complete_start_time",
+    "api": "completeStartTime",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "complete_end_time",
+    "api": "completeEndTime",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/batchPadConfigProxy": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "batch_pad_config_proxy",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Configure Dynamic Proxy for Cloud Phone",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "set_proxy_flag",
+    "api": "setProxyFlag",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "proxy_ids",
+    "api": "proxyIds",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/selectBatchPadProxyTask": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "select_batch_pad_proxy_task",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Batch Cloud Phone Proxy Setting Task",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getDynamicProxyAutomaticRenewal": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "get_dynamic_proxy_automatic_renewal",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query Dynamic Proxy Auto-Renew Information",
+  "category": "Dynamic Proxy Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/setAutoRenewSwitch": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "set_auto_renew_switch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Set Dynamic Proxy Auto-Renew Switch",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "auto_renew_order",
+    "api": "autoRenewOrder",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/delProxyByIds": {
+  "module": "dynamic_proxy",
+  "sync_class": "DynamicProxyAPI",
+  "async_class": "AsyncDynamicProxyAPI",
+  "method": "del_proxy_by_ids",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Delete Dynamic Proxy",
+  "category": "Dynamic Proxy Service",
+  "params": [
+   {
+    "py": "ids",
+    "api": "ids",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getEmailServiceList": {
+  "module": "email",
+  "sync_class": "EmailAPI",
+  "async_class": "AsyncEmailAPI",
+  "method": "get_email_service_list",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Get Email Service List",
+  "category": "Cloud Phone Management",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getEmailTypeList": {
+  "module": "email",
+  "sync_class": "EmailAPI",
+  "async_class": "AsyncEmailAPI",
+  "method": "get_email_type_list",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Get Email Type and Remaining Stock",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "service_id",
+    "api": "serviceId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/createEmailOrder": {
+  "module": "email",
+  "sync_class": "EmailAPI",
+  "async_class": "AsyncEmailAPI",
+  "method": "create_email_order",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Create Email Purchase Order",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "service_id",
+    "api": "serviceId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "email_type_id",
+    "api": "emailTypeId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "good_num",
+    "api": "goodNum",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getEmailOrder": {
+  "module": "email",
+  "sync_class": "EmailAPI",
+  "async_class": "AsyncEmailAPI",
+  "method": "get_email_order",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query Purchased Email List",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "service_id",
+    "api": "serviceId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "email",
+    "api": "email",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "status",
+    "api": "status",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getEmailCode": {
+  "module": "email",
+  "sync_class": "EmailAPI",
+  "async_class": "AsyncEmailAPI",
+  "method": "get_email_code",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Refresh to Get Email Verification Code",
+  "category": "Email Verification Service",
+  "params": [
+   {
+    "py": "order_id",
+    "api": "orderId",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/setWifiList": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "set_wifi_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify Instance WIFI Properties",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "wifi_json_list",
+    "api": "wifiJsonList",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/padDetail": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "pad_detail",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Cloud Phone Base Info List",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "last_id",
+    "api": "lastId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "rows",
+    "api": "rows",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "pad_ips",
+    "api": "padIps",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "online",
+    "api": "online",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_status",
+    "api": "padStatus",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "compute_occupied",
+    "api": "computeOccupied",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "net_storage_res_flag",
+    "api": "netStorageResFlag",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "brand",
+    "api": "brand",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "brand_model",
+    "api": "brandModel",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/restart": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "restart",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Instance Restart",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/reset": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "reset",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Instance Reset",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/padProperties": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "pad_properties",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Instance Properties",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/batchPadProperties": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "batch_pad_properties",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Query Instance Properties",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/updatePadProperties": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "update_pad_properties",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify Instance Properties",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "modem_persist_properties_list",
+    "api": "modemPersistPropertiesList",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "modem_properties_list",
+    "api": "modemPropertiesList",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "system_persist_properties_list",
+    "api": "systemPersistPropertiesList",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "system_properties_list",
+    "api": "systemPropertiesList",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "setting_properties_list",
+    "api": "settingPropertiesList",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "oaid_properties_list",
+    "api": "oaidPropertiesList",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/updatePadAndroidProp": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "update_pad_android_prop",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify Instance Android Modification Properties",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "restart",
+    "api": "restart",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "props",
+    "api": "props",
+    "required": true,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getUpdateSIMTaskStatus": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "get_update_sim_task_status",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query SIM Modification Task Status",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/dissolveRoom": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "dissolve_room",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Stop Streaming",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/checkIP": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "check_ip",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Smart IP Proxy Detection",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "host",
+    "api": "host",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "port",
+    "api": "port",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "account",
+    "api": "account",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "password",
+    "api": "password",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "type",
+    "api": "type",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "country",
+    "api": "country",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "ip",
+    "api": "ip",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "loc",
+    "api": "loc",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "city",
+    "api": "city",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "region",
+    "api": "region",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "timezone",
+    "api": "timezone",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/smartIp": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "smart_ip",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Set Smart IP",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "host",
+    "api": "host",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "port",
+    "api": "port",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "account",
+    "api": "account",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "password",
+    "api": "password",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "type",
+    "api": "type",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "mode",
+    "api": "mode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "bypass_package_list",
+    "api": "bypassPackageList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "bypass_ip_list",
+    "api": "bypassIpList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "bypass_domain_list",
+    "api": "bypassDomainList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "follow_language",
+    "api": "followLanguage",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/notSmartIp": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "not_smart_ip",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Cancel Smart IP",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getListInstalledApp": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "get_list_installed_app",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get All Installed Apps in Specified Cloud Instance List",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_code_list",
+    "api": "padCodeList",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/updateTimeZone": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "update_time_zone",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify Instance Timezone",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "time_zone",
+    "api": "timeZone",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/updateLanguage": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "update_language",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify Instance Language",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "language",
+    "api": "language",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "country",
+    "api": "country",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/gpsInjectInfo": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "gps_inject_info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Set Instance Latitude and Longitude",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "longitude",
+    "api": "longitude",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "latitude",
+    "api": "latitude",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "altitude",
+    "api": "altitude",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "speed",
+    "api": "speed",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "bearing",
+    "api": "bearing",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "horizontal_accuracy_meters",
+    "api": "horizontalAccuracyMeters",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/open/network/proxy/info": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Instance Proxy Information",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/replacePad": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "replace_pad",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "One-Key New Device** \u2b50",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "country_code",
+    "api": "countryCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "real_phone_template_id",
+    "api": "realPhoneTemplateId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "android_prop",
+    "api": "androidProp",
+    "required": false,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   },
+   {
+    "py": "replacement_real_adi_flag",
+    "api": "replacementRealAdiFlag",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "exclude_real_phone_template_ids",
+    "api": "excludeRealPhoneTemplateIds",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "certificate",
+    "api": "certificate",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "wipe_data",
+    "api": "wipeData",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "wipe_specific_data",
+    "api": "wipeSpecificData",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "keep_specific_data",
+    "api": "keepSpecificData",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "enable_cpu_core_config",
+    "api": "enableCpuCoreConfig",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "webview_id",
+    "api": "webviewId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/padReplaceNew": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "pad_replace_new",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "One-Key New Device (Auto SIM/GPS/Timezone)** \u2b50",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "set_proxy_flag",
+    "api": "setProxyFlag",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "wipe_data",
+    "api": "wipeData",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "keep_lang_timezone",
+    "api": "keepLangTimezone",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "android_prop",
+    "api": "androidProp",
+    "required": false,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   },
+   {
+    "py": "webview_id",
+    "api": "webviewId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/country": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "country",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query One-Key New Device Supported Countries List",
+  "category": "Instance Management",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/webview/version/list": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "webview_version_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Available WebView Versions",
+  "category": "Instance Management",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/replacement": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "replacement",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Device Replacement",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getLongGenerateUrl": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "get_long_generate_url",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get Instance Real-Time Preview Image",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "format",
+    "api": "format",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "height",
+    "api": "height",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "width",
+    "api": "width",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "quality",
+    "api": "quality",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/setProxy": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "set_proxy",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Instance Set Proxy",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "account",
+    "api": "account",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "password",
+    "api": "password",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "ip",
+    "api": "ip",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "port",
+    "api": "port",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "enable",
+    "api": "enable",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "proxy_type",
+    "api": "proxyType",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "proxy_name",
+    "api": "proxyName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "model",
+    "api": "model",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "bypass_package_list",
+    "api": "bypassPackageList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "bypass_ip_list",
+    "api": "bypassIpList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "bypass_domain_list",
+    "api": "bypassDomainList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "limit_package_list",
+    "api": "limitPackageList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "limit_ip_list",
+    "api": "limitIpList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "limit_domain_list",
+    "api": "limitDomainList",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "s_uo_t",
+    "api": "sUoT",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/asyncCmd": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "async_cmd",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Async Execute ADB Commands",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "script_content",
+    "api": "scriptContent",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/switchRoot": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "switch_root",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Switch Root Permissions",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "global_root",
+    "api": "globalRoot",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "package_name",
+    "api": "packageName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "root_status",
+    "api": "rootStatus",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/screenshot": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "screenshot",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Local Screenshot",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "rotation",
+    "api": "rotation",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "broadcast",
+    "api": "broadcast",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "definition",
+    "api": "definition",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "resolution_height",
+    "api": "resolutionHeight",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "resolution_width",
+    "api": "resolutionWidth",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/generatePreview": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "generate_preview",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Generate Preview Image",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "rotation",
+    "api": "rotation",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "broadcast",
+    "api": "broadcast",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/upgradeImage": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "upgrade_image",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Upgrade Image",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "image_id",
+    "api": "imageId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "wipe_data",
+    "api": "wipeData",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "enable_cpu_core_config",
+    "api": "enableCpuCoreConfig",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/setHideAccessibilityAppList": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "set_hide_accessibility_app_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Hide Accessibility Service",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "app_infos",
+    "api": "appInfos",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/virtualRealSwitch": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "virtual_real_switch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Upgrade Real Device Image",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "image_id",
+    "api": "imageId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "wipe_data",
+    "api": "wipeData",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "real_phone_template_id",
+    "api": "realPhoneTemplateId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "upgrade_image_convert_type",
+    "api": "upgradeImageConvertType",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "screen_layout_id",
+    "api": "screenLayoutId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "certificate",
+    "api": "certificate",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "device_android_props",
+    "api": "deviceAndroidProps",
+    "required": false,
+    "type": "Mapping[str, Any]",
+    "is_file": false
+   },
+   {
+    "py": "enable_cpu_core_config",
+    "api": "enableCpuCoreConfig",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/templateList": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "template_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Paginated Get Real Device Templates",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "rows",
+    "api": "rows",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/modelInfo": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "model_info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Get Instance Device Model Information",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/setSpeed": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "set_speed",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Set Instance Bandwidth",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "up_bandwidth",
+    "api": "upBandwidth",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "down_bandwidth",
+    "api": "downBandwidth",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/openOnlineAdb": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "open_online_adb",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Enable/Disable ADB",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "open_status",
+    "api": "openStatus",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/adb": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "adb",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get ADB Connection Information",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "enable",
+    "api": "enable",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "expire_minutes",
+    "api": "expireMinutes",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/batch/adb": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "batch_adb",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Get ADB Connection Information",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "enable",
+    "api": "enable",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/confirmTransfer": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "confirm_transfer",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Transfer Cloud Phone",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "make_over_mobile_phone",
+    "api": "makeOverMobilePhone",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/executeScriptInfo": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "execute_script_info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get Instance Script Execution Result",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "task_ids",
+    "api": "taskIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/screenshotInfo": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "screenshot_info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get Instance Screenshot Result",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "task_ids",
+    "api": "taskIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/infos": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "infos",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Instance List Information",
+  "category": "Resource Management",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "rows",
+    "api": "rows",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_type",
+    "api": "padType",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/addPhoneRecord": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "add_phone_record",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Import Call Logs",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "call_records",
+    "api": "callRecords",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/inputText": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "input_text",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Cloud Phone Text Input",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "text",
+    "api": "text",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/simulateSendSms": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "simulate_send_sms",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Simulate Send SMS",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "sender_number",
+    "api": "senderNumber",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "sms_content",
+    "api": "smsContent",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/resetGAID": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "reset_gaid",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Reset GAID",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "reset_gms_type",
+    "api": "resetGmsType",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "opr_by",
+    "api": "oprBy",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "task_source",
+    "api": "taskSource",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/injectAudioToMic": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "inject_audio_to_mic",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Inject Audio to Instance Microphone",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "url",
+    "api": "url",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "file_unique_id",
+    "api": "fileUniqueId",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "enable",
+    "api": "enable",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/cleanAppHome": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "clean_app_home",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Clear Processes and Return to Desktop",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/unmannedLive": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "unmanned_live",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Unmanned Live Streaming",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "inject_switch",
+    "api": "injectSwitch",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "inject_loop",
+    "api": "injectLoop",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "inject_url",
+    "api": "injectUrl",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "inject_urls",
+    "api": "injectUrls",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/injectPicture": {
+  "module": "instance",
+  "sync_class": "InstanceAPI",
+  "async_class": "AsyncInstanceAPI",
+  "method": "inject_picture",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Image Injection",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "inject_switch",
+    "api": "injectSwitch",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "inject_loop",
+    "api": "injectLoop",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "inject_url",
+    "api": "injectUrl",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/createTimingShare": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "create_timing_share",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Cloud Phone Management",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "equipment_id",
+    "api": "equipmentId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "permission",
+    "api": "permission",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/openAutoRenew": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "open_auto_renew",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Enable Cloud Phone Auto-Renewal",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/closeAutoRenew": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "close_auto_renew",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Disable Cloud Phone Auto-Renewal",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/closeAllAutoRenew": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "close_all_auto_renew",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Batch Disable Cloud Phone Auto-Renewal",
+  "category": "Cloud Phone Management",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/updatePadName": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "update_pad_name",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Rename Cloud Phone",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "pad_name",
+    "api": "padName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/authorizePad": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "authorize_pad",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Authorize Pad",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "authorized_account",
+    "api": "authorizedAccount",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "minutes",
+    "api": "minutes",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "equi_authorize",
+    "api": "equiAuthorize",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "permission",
+    "api": "permission",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/replaceRealAdiTemplate": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "replace_real_adi_template",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Modify Real Device ADI Template",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "wipe_data",
+    "api": "wipeData",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "real_phone_template_id",
+    "api": "realPhoneTemplateId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/createMoneyOrder": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "create_money_order",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Create Cloud Phone",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "android_version_name",
+    "api": "androidVersionName",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "good_id",
+    "api": "goodId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "good_num",
+    "api": "goodNum",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "auto_renew",
+    "api": "autoRenew",
+    "required": true,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "equipment_id",
+    "api": "equipmentId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "country_code",
+    "api": "countryCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/activateByCode": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "activate_by_code",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Activate Cloud Phone with Activation Code",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "active_code_list",
+    "api": "activeCodeList",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "country_code",
+    "api": "countryCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/queryActivationBatch": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "query_activation_batch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Batch Activation Progress",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "batch_id",
+    "api": "batchId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/userPadList": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "user_pad_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Cloud Phone List",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "equipment_ids",
+    "api": "equipmentIds",
+    "required": false,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/padInfo": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "pad_info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Cloud Phone Information Query",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/getCloudGoodList": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "get_cloud_good_list",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "SKU Package List",
+  "category": "Cloud Phone Management",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/imageVersionList": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "image_version_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Android image version collection",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/createMoneyProOrder": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "create_money_pro_order",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Equipment Pre-sale Purchase",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "android_version_name",
+    "api": "androidVersionName",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "good_id",
+    "api": "goodId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "good_num",
+    "api": "goodNum",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "auto_renew",
+    "api": "autoRenew",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   },
+   {
+    "py": "country_code",
+    "api": "countryCode",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/queryProOrderList": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "query_pro_order_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query pre-sale order result details",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pro_buy_status",
+    "api": "proBuyStatus",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "order_id",
+    "api": "orderId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/queryPadIdChangeRecords": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "query_pad_id_change_records",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query padCode Change Records**",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "query_date",
+    "api": "queryDate",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/listPadBackupIds": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "list_pad_backup_ids",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "List Pad Backup IDs**",
+  "category": "Cloud Phone Management",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/addBackup": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "add_backup",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Create Pad Backups**",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "vc_pad_backup_list",
+    "api": "vcPadBackupList",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/clonePadBackup": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "clone_pad_backup",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Clone Pad Backup to Multiple Pads**",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "vc_pad_backup_list",
+    "api": "vcPadBackupList",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   },
+   {
+    "py": "pads",
+    "api": "pads",
+    "required": true,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/queryBackupBatch": {
+  "module": "phone",
+  "sync_class": "PhoneAPI",
+  "async_class": "AsyncPhoneAPI",
+  "method": "query_backup_batch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Backup Batch Progress**",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "batch_id",
+    "api": "batchId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/proxyGoodList": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "proxy_good_list",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Get Static Residential Product List",
+  "category": "Static Residential Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getProxyRegion": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "get_proxy_region",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Get Supported Countries/Cities for Static Residential Products",
+  "category": "Static Residential Service",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/createProxyOrder": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "create_proxy_order",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Purchase Static Residential Product",
+  "category": "Static Residential Service",
+  "params": [
+   {
+    "py": "proxy_good_id",
+    "api": "proxyGoodId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "region",
+    "api": "region",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "num",
+    "api": "num",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "country",
+    "api": "country",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "proxy_address",
+    "api": "proxyAddress",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "auto_renew",
+    "api": "autoRenew",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/selectProxyOrderList": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "select_proxy_order_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Static Residential Proxy Order Details",
+  "category": "Static Residential Service",
+  "params": [
+   {
+    "py": "page",
+    "api": "page",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "rows",
+    "api": "rows",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/createRenewProxyOrder": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "create_renew_proxy_order",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Static Residential Proxy Renewal",
+  "category": "Static Residential Service",
+  "params": [
+   {
+    "py": "proxy_good_id",
+    "api": "proxyGoodId",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "proxy_ips",
+    "api": "proxyIps",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "auto_renew",
+    "api": "autoRenew",
+    "required": false,
+    "type": "bool",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/queryProxyList": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "query_proxy_list",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query Static Residential Proxy List",
+  "category": "Static Residential Service",
+  "params": [
+   {
+    "py": "current",
+    "api": "current",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "size",
+    "api": "size",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/delProxyByHost": {
+  "module": "static_proxy",
+  "sync_class": "StaticProxyAPI",
+  "async_class": "AsyncStaticProxyAPI",
+  "method": "del_proxy_by_host",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Delete Static Residential Proxy",
+  "category": "Static Residential Service",
+  "params": [
+   {
+    "py": "host",
+    "api": "host",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "port",
+    "api": "port",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "account",
+    "api": "account",
+    "required": false,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/selectFiles": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "select_files",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Query User File List",
+  "category": "Cloud Space",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/deleteOssFiles": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "delete_oss_files",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Delete Cloud Space Files",
+  "category": "Cloud Space",
+  "params": [
+   {
+    "py": "files",
+    "api": "files",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   },
+   {
+    "py": "urls",
+    "api": "urls",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/uploadFile": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "upload_file",
+  "http_method": "POST",
+  "param_style": "form",
+  "name": "Upload File to Cloud Space",
+  "category": "Cloud Space",
+  "params": [
+   {
+    "py": "file",
+    "api": "file",
+    "required": true,
+    "type": "Any",
+    "is_file": true
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/buyStorageGoods": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "buy_storage_goods",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Purchase Cloud Space Expansion",
+  "category": "Cloud Space",
+  "params": [
+   {
+    "py": "storage_id",
+    "api": "storageId",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "auto_renew_order",
+    "api": "autoRenewOrder",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/vcTimingBackupList": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "vc_timing_backup_list",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Storage Resource Package List",
+  "category": "Cloud Space",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getVcStorageGoods": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "get_vc_storage_goods",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Cloud Space Product List",
+  "category": "Cloud Space",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/renewsStorageGoods": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "renews_storage_goods",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Aggregate Renewal of Cloud Space Products",
+  "category": "Cloud Space",
+  "params": [
+   {
+    "py": "auto_renew_order",
+    "api": "autoRenewOrder",
+    "required": true,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/deleteUploadFiles": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "delete_upload_files",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Delete Backup Resource Package Data",
+  "category": "Cloud Space",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/updateRenewStorageStatus": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "update_renew_storage_status",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Cloud Space Auto-renew Aggregate Product Switch",
+  "category": "Cloud Space",
+  "params": [
+   {
+    "py": "renew_storage_status",
+    "api": "renewStorageStatus",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/selectAutoRenew": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "select_auto_renew",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Query Cloud Space Renewal Details",
+  "category": "Cloud Space",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getRenewStorageInfo": {
+  "module": "storage",
+  "sync_class": "StorageAPI",
+  "async_class": "AsyncStorageAPI",
+  "method": "get_renew_storage_info",
+  "http_method": "GET",
+  "param_style": "query",
+  "name": "Cloud Space Remaining Storage Capacity",
+  "category": "Cloud Space",
+  "params": []
+ },
+ "/vcpcloud/api/padApi/getTaskStatus": {
+  "module": "tasks",
+  "sync_class": "TasksAPI",
+  "async_class": "AsyncTasksAPI",
+  "method": "get_task_status",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Device Task Execution Result Query",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "task_id",
+    "api": "taskId",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/padTaskDetail": {
+  "module": "tasks",
+  "sync_class": "TasksAPI",
+  "async_class": "AsyncTasksAPI",
+  "method": "pad_task_detail",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Instance Operation Task Details",
+  "category": "Task Management",
+  "params": [
+   {
+    "py": "task_ids",
+    "api": "taskIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/padExecuteTaskInfo": {
+  "module": "tasks",
+  "sync_class": "TasksAPI",
+  "async_class": "AsyncTasksAPI",
+  "method": "pad_execute_task_info",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Instance Restart/Reset Execution Result",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "task_ids",
+    "api": "taskIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/fileTaskDetail": {
+  "module": "tasks",
+  "sync_class": "TasksAPI",
+  "async_class": "AsyncTasksAPI",
+  "method": "file_task_detail",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "File Task Details",
+  "category": "Task Management",
+  "params": [
+   {
+    "py": "task_ids",
+    "api": "taskIds",
+    "required": true,
+    "type": "Sequence[Any]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/stsTokenByPadCode": {
+  "module": "token",
+  "sync_class": "TokenAPI",
+  "async_class": "AsyncTokenAPI",
+  "method": "sts_token_by_pad_code",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Get SDK Temporary Token by padCode",
+  "category": "SDK Token",
+  "params": [
+   {
+    "py": "pad_code",
+    "api": "padCode",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/clearStsToken": {
+  "module": "token",
+  "sync_class": "TokenAPI",
+  "async_class": "AsyncTokenAPI",
+  "method": "clear_sts_token",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Clear SDK Authorization Token",
+  "category": "SDK Token",
+  "params": [
+   {
+    "py": "token",
+    "api": "token",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/simulateTouch": {
+  "module": "touch",
+  "sync_class": "TouchAPI",
+  "async_class": "AsyncTouchAPI",
+  "method": "simulate_touch",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Simulate Touch",
+  "category": "Cloud Phone Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": false,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "width",
+    "api": "width",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "height",
+    "api": "height",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "point_count",
+    "api": "pointCount",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "positions",
+    "api": "positions",
+    "required": false,
+    "type": "Sequence[Mapping[str, Any]]",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/simulateClick": {
+  "module": "touch",
+  "sync_class": "TouchAPI",
+  "async_class": "AsyncTouchAPI",
+  "method": "simulate_click",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Simulate Click",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "x",
+    "api": "x",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "y",
+    "api": "y",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "width",
+    "api": "width",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "height",
+    "api": "height",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/simulateSwipe": {
+  "module": "touch",
+  "sync_class": "TouchAPI",
+  "async_class": "AsyncTouchAPI",
+  "method": "simulate_swipe",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Simulate Swipe",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "direction",
+    "api": "direction",
+    "required": true,
+    "type": "str",
+    "is_file": false
+   },
+   {
+    "py": "width",
+    "api": "width",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "height",
+    "api": "height",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "start_x",
+    "api": "startX",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "start_y",
+    "api": "startY",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "end_x",
+    "api": "endX",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "end_y",
+    "api": "endY",
+    "required": false,
+    "type": "float",
+    "is_file": false
+   }
+  ]
+ },
+ "/vcpcloud/api/padApi/simulateLongPress": {
+  "module": "touch",
+  "sync_class": "TouchAPI",
+  "async_class": "AsyncTouchAPI",
+  "method": "simulate_long_press",
+  "http_method": "POST",
+  "param_style": "json",
+  "name": "Simulate Long Press",
+  "category": "Instance Management",
+  "params": [
+   {
+    "py": "pad_codes",
+    "api": "padCodes",
+    "required": true,
+    "type": "Sequence[str]",
+    "is_file": false
+   },
+   {
+    "py": "x",
+    "api": "x",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "y",
+    "api": "y",
+    "required": true,
+    "type": "float",
+    "is_file": false
+   },
+   {
+    "py": "hold_ms",
+    "api": "holdMs",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "width",
+    "api": "width",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   },
+   {
+    "py": "height",
+    "api": "height",
+    "required": false,
+    "type": "int",
+    "is_file": false
+   }
+  ]
+ }
+}
