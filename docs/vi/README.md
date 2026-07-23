@@ -18,6 +18,11 @@ Mỗi namespace bên dưới là một thuộc tính của `VMOSClient` / `Async
 | [`client.token`](token.md) | 2 | Cấp & xóa token STS tạm thời cho SDK phía client. |
 | [`client.touch`](touch.md) | 4 | Quỹ đạo chạm/vuốt/nhấn giữ giống người thật và cảm ứng đa điểm mức thấp. |
 
+## Hướng dẫn chuyên đề
+
+- [Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)
+
+
 **Total: 152 endpoints / 11 namespaces.**
 
 Xem thêm: [../en/README.md](../en/README.md) — English documentation.

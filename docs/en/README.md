@@ -18,6 +18,11 @@ Every namespace below is an attribute of `VMOSClient` / `AsyncVMOSClient` (e.g. 
 | [`client.token`](token.md) | 2 | Issue & clear temporary STS tokens for the client-side SDK. |
 | [`client.touch`](touch.md) | 4 | Humanized click/swipe/long-press trajectories and raw multi-point touch. |
 
+## Topic guides
+
+- [Cloud Real Device — changeable properties](real-device-properties.md)
+
+
 **Total: 152 endpoints / 11 namespaces.**
 
 See also: [../vi/README.md](../vi/README.md) — Tài liệu tiếng Việt.
