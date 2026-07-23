@@ -22,6 +22,7 @@ Mỗi namespace bên dưới là một thuộc tính của `VMOSClient` / `Async
 
 - [Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)
 - [Toolkit spoof thiết bị (reseller)](toolkit-spoof-thiet-bi.md)
+- [Đánh giá module Xposed/LSPosed spoof](xposed-spoof-modules-vi.md)
 
 
 **Total: 152 endpoints / 11 namespaces.**

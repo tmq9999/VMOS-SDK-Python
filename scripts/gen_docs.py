@@ -161,10 +161,12 @@ def main():
         total = sum(len(v) for v in by_module.values())
         if lang == "en":
             topics = ["[Cloud Real Device — changeable properties](real-device-properties.md)",
-                      "[Device-Spoofing Toolkit (reseller)](device-spoofing-toolkit.md)"]
+                      "[Device-Spoofing Toolkit (reseller)](device-spoofing-toolkit.md)",
+                      "[Xposed/LSPosed spoof modules — evaluation](xposed-spoof-modules.md)"]
         else:
             topics = ["[Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)",
-                      "[Toolkit spoof thiết bị (reseller)](toolkit-spoof-thiet-bi.md)"]
+                      "[Toolkit spoof thiết bị (reseller)](toolkit-spoof-thiet-bi.md)",
+                      "[Đánh giá module Xposed/LSPosed spoof](xposed-spoof-modules-vi.md)"]
         index += ["", "## " + ("Topic guides" if lang == "en" else "Hướng dẫn chuyên đề"), ""]
         index += ["- " + t for t in topics]
         index += [""]

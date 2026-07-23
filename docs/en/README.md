@@ -22,6 +22,7 @@ Every namespace below is an attribute of `VMOSClient` / `AsyncVMOSClient` (e.g. 
 
 - [Cloud Real Device — changeable properties](real-device-properties.md)
 - [Device-Spoofing Toolkit (reseller)](device-spoofing-toolkit.md)
+- [Xposed/LSPosed spoof modules — evaluation](xposed-spoof-modules.md)
 
 
 **Total: 152 endpoints / 11 namespaces.**
