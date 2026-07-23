@@ -26,13 +26,13 @@ android {
 }
 
 dependencies {
-    // VMOS/ArmCloud XPose API: com.android.core.{XSHelpers, XC_MethodHook, XSBridge}.
-    // Default uses the in-repo compile-only STUB (:xscore-stub) so the plugin
-    // builds even when the real artifact isn't on a public Maven repo. The real
-    // classes are supplied by the framework at runtime (never packaged here).
-    // If you HAVE the real artifact, swap the next line for:
-    //     compileOnly("net.armcloud.xscore:xscore:1.0.0")
-    compileOnly(project(":xscore-stub"))
+    // VMOS/ArmCloud XPose SDK: com.android.core.{XSHelpers, XC_MethodHook, XSBridge}
+    // + the native hook engine (libengcore.so). MUST be bundled (implementation,
+    // NOT compileOnly): the framework does NOT expose these classes to the
+    // plugin's classloader at runtime, so a plugin that fails to ship them throws
+    // NoClassDefFoundError when it tries to hook. Resolved from https://maven.vmos.cn
+    // (configured in settings.gradle.kts). This matches the official ArmCloudXposed demo.
+    implementation("net.armcloud.xscore:xscore:1.0.0")
     // Makes reflective reads of hidden android.os.SystemProperties reliable on
     // Android 9+ (bundled into the APK; used by Entry.appMain).
     implementation("org.lsposed.hiddenapibypass:hiddenapibypass:4.3")

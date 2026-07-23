@@ -91,10 +91,10 @@ public class Entry {
     /** Force a method's return value to the given property, when that property is set. */
     private static void forceReturnFromProp(Class<?> cls, String method, final String propKey, Class<?>... paramTypes) {
         try {
-            Object[] args = new Object[paramTypes.length + 2];
-            args[0] = method;
-            System.arraycopy(paramTypes, 0, args, 1, paramTypes.length);
-            args[args.length - 1] = new XC_MethodHook() {
+            // Real API: XSHelpers.findAndHookMethod(Class, String methodName, Object... paramTypesThenCallback)
+            Object[] spec = new Object[paramTypes.length + 1];
+            System.arraycopy(paramTypes, 0, spec, 0, paramTypes.length);
+            spec[spec.length - 1] = new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     String v = prop(propKey);
@@ -103,7 +103,7 @@ public class Entry {
                     }
                 }
             };
-            XSHelpers.findAndHookMethod(cls, args);
+            XSHelpers.findAndHookMethod(cls, method, spec);
             Log.d(TAG, "hooked " + cls.getSimpleName() + "." + method + " <- " + propKey);
         } catch (Throwable t) {
             Log.d(TAG, "skip " + method + ": " + t);

@@ -93,12 +93,12 @@ Helper: `set_identity_props`, `load_xpose_plugin`, `list_xpose_plugins`,
 ## Build APK
 
 Không build được trong shell VMOS — dùng toolchain Android bình thường (Android
-Studio, hoặc `gradle :app:assembleRelease` với Android SDK + JDK 17). Nếu artifact
-`net.armcloud.xscore` không có trên public Maven, lấy từ demo chính thức
-(`ArmCloudXposed.zip`) hoặc bỏ một **stub** jar compile-time expose
-`com.android.core.{XSHelpers, XC_MethodHook, XSBridge}` vào `app/libs/` — class
-thật do framework cung cấp lúc runtime; stub chỉ để `javac` qua. Chi tiết:
-[`xpose_plugin/README.md`](../../xpose_plugin/README.md).
+Studio, hoặc `gradle :app:assembleRelease` với Android SDK + JDK 17). Build sẽ
+kéo `net.armcloud.xscore:xscore:1.0.0` từ `https://maven.vmos.cn` và **đóng gói**
+vào APK — cả class `com.android.core.*` **lẫn** native `libengcore.so` phải nằm
+trong APK (framework KHÔNG cấp chúng cho plugin lúc runtime; plugin thiếu chúng
+sẽ ném `NoClassDefFoundError` khi hook). Chi tiết + cách offline:
+[`xpose_plugin/BUILD.md`](../../xpose_plugin/BUILD.md).
 
 ## Verify bằng ĐÚNG oracle
 

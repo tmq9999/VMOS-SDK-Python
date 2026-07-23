@@ -4,9 +4,9 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories {
         google(); mavenCentral()
-        // ArmCloud/VMOS xscore may live in a vendor maven repo; add it here if needed:
-        // maven { url = uri("https://<vmos-maven-repo>/") }
+        // VMOS/ArmCloud XPose SDK (com.android.core.* + native libengcore.so):
+        maven(url = "https://maven.vmos.cn")
     }
 }
 rootProject.name = "vmos-xpose-spoof"
-include(":app", ":xscore-stub")
+include(":app")

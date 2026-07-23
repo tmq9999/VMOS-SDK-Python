@@ -93,12 +93,13 @@ Helpers: `set_identity_props`, `load_xpose_plugin`, `list_xpose_plugins`,
 ## Build the APK
 
 Not buildable inside the VMOS shell — use a normal Android toolchain (Android
-Studio, or `gradle :app:assembleRelease` with Android SDK + JDK 17). If the
-`net.armcloud.xscore` artifact isn't on public Maven, take it from the official
-demo (`ArmCloudXposed.zip`) or drop a compile-time **stub** jar exposing
-`com.android.core.{XSHelpers, XC_MethodHook, XSBridge}` into `app/libs/` — the
-real classes are provided by the framework at runtime; the stub only satisfies
-`javac`. Full steps: [`xpose_plugin/README.md`](../../xpose_plugin/README.md).
+Studio, or `gradle :app:assembleRelease` with Android SDK + JDK 17). The build
+pulls the real `net.armcloud.xscore:xscore:1.0.0` from `https://maven.vmos.cn`
+and **bundles** it — the `com.android.core.*` classes **and** the native
+`libengcore.so` hook engine must ship inside the APK (the framework does not
+provide them to the plugin at runtime; a plugin that omits them throws
+`NoClassDefFoundError` when hooking). Full steps + offline option:
+[`xpose_plugin/BUILD.md`](../../xpose_plugin/BUILD.md).
 
 ## Verify with the CORRECT oracle
 

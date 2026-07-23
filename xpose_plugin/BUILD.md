@@ -4,10 +4,12 @@ The plugin (`androidx.app.Entry`) can't be built inside the VMOS shell; you need
 a normal Android toolchain **once**. After that, one APK serves every device —
 you configure identities per device with `set_identity_props` (no rebuild).
 
-Good news: the `com.android.core.*` XPose API is provided in this repo as a
-**compile-only stub** (`xscore-stub/`), so you do **not** need the real
-`net.armcloud.xscore` artifact to compile. The real classes are supplied by the
-VMOS framework at runtime.
+The build pulls the real **VMOS XPose SDK** (`net.armcloud.xscore:xscore:1.0.0`)
+from `https://maven.vmos.cn` (already configured in `settings.gradle.kts`) and
+**bundles** it into the APK — shipping both the `com.android.core.*` classes and
+the native `libengcore.so` hook engine, exactly like the official ArmCloudXposed
+demo. Your machine needs network access to `maven.vmos.cn` at build time (offline
+option below).
 
 ## 0. What you need
 
@@ -21,7 +23,7 @@ VMOS framework at runtime.
 ## Option A — Android Studio (simplest)
 
 1. **File → Open…** and select the `xpose_plugin/` folder. Let Gradle sync finish
-   (it downloads AGP, Gradle, and the `hiddenapibypass` dependency).
+   (it downloads AGP, Gradle, the `xscore` SDK from maven.vmos.cn, and `hiddenapibypass`).
 2. **Build → Build Bundle(s) / APK(s) → Build APK(s)** — or run the Gradle task
    `:app:assembleRelease` from the Gradle panel.
 3. Grab the APK from:
@@ -60,20 +62,25 @@ gradle :app:assembleRelease        # -> app/build/outputs/apk/release/app-releas
 
 ## About the `net.armcloud.xscore` library
 
-You do **not** need it to build — `xscore-stub/` satisfies the compiler and is
-never packaged into the APK. If you later obtain the real artifact (e.g. from the
-official `ArmCloudXposed.zip` demo or a VMOS vendor Maven repo), you can switch
-`app/build.gradle.kts` from:
+It **must be bundled** (`implementation`, not `compileOnly`): the VMOS framework
+does not expose `com.android.core.*` to the plugin's own classloader at runtime,
+so a plugin that doesn't ship these classes throws `NoClassDefFoundError` the
+moment it tries to hook (confirmed live). The Gradle config already does this:
 
 ```kotlin
-compileOnly(project(":xscore-stub"))
+// settings.gradle.kts
+maven(url = "https://maven.vmos.cn")
+// app/build.gradle.kts
+implementation("net.armcloud.xscore:xscore:1.0.0")
 ```
-to
-```kotlin
-compileOnly("net.armcloud.xscore:xscore:1.0.0")
-```
-(and add the vendor repo in `settings.gradle.kts`). Either way the runtime
-behavior is identical — the framework provides the real classes.
+
+The `.aar` carries the `com.android.core.*` classes **and** the native
+`libengcore.so` hook engine, so nothing else is needed.
+
+**Offline / air-gapped build:** download the aar once from
+`https://maven.vmos.cn/net/armcloud/xscore/xscore/1.0.0/xscore-1.0.0.aar`, drop it
+in `app/libs/`, add `flatDir { dirs("libs") }` to `settings.gradle.kts`, and use
+`implementation(":xscore-1.0.0@aar")`.
 
 ---
 
