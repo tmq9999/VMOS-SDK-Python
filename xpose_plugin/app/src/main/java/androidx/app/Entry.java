@@ -23,14 +23,23 @@ import com.android.core.XSHelpers;
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.iccid     8986000000000000000
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.line1     84987654321
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.androidid a1b2c3d4e5f60718
+ *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.gaid      38400000-8cf0-11bd-b23e-10b96e40000d
+ *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.wifimac   02:00:00:11:22:33
+ *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.serial    1A2B3C4D5E6F
+ *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.drmid     deadbeefcafe0011  (hex)
  * </pre>
  * An empty / unset property means "leave the real value untouched", so you can
  * spoof only what you need. The VMOS SDK helper {@code vmos.spoof.set_identity_props}
  * sets these props for you.
  *
- * <p>Because this hooks the app-side Java getters ({@code TelephonyManager},
- * {@code Settings.Secure}) it changes what the scoped app actually reads — the
- * layer {@code resetprop} alone cannot reach for IMEI/IMSI/ICCID/ANDROID_ID.
+ * <p>Because this hooks the app-side Java getters it changes what the scoped app
+ * actually reads — the layer {@code resetprop} alone cannot reach. Coverage:
+ * {@code TelephonyManager} (IMEI/MEID/IMSI/ICCID/line1), {@code Settings.Secure}
+ * (ANDROID_ID), {@code AdvertisingIdClient} (GAID), {@code WifiInfo} (MAC/BSSID),
+ * {@code Build.getSerial()}, {@code MediaDrm} (Widevine device id), and the MSA
+ * OAID supplier. Every extra hook is guarded — absent classes are skipped — so
+ * one APK is safe to load into any target, and you extend it by adding a hook
+ * for whatever getter a specific app uses.
  */
 public class Entry {
 
@@ -60,6 +69,11 @@ public class Entry {
             hookAndroidId(loader);
         } catch (Throwable t) {
             Log.e(TAG, "hookAndroidId failed: " + Log.getStackTraceString(t));
+        }
+        try {
+            hookExtras(loader);
+        } catch (Throwable t) {
+            Log.e(TAG, "hookExtras failed: " + Log.getStackTraceString(t));
         }
     }
 
@@ -117,6 +131,79 @@ public class Entry {
             }
         });
         Log.d(TAG, "hooked Settings.Secure.getString(android_id)");
+    }
+
+    /**
+     * Extra identity surfaces beyond telephony / ANDROID_ID. Each block is fully
+     * guarded: if the class/method isn't present in this app it is silently
+     * skipped (so the same APK is safe to load into any target). This is what
+     * makes the private plugin "deeper" than a fixed third-party module — add a
+     * hook for any getter a target app uses to fingerprint the device.
+     */
+    private static void hookExtras(ClassLoader loader) {
+        // Google Advertising ID (GAID) — present when the app links Play Services ads.
+        try {
+            Class<?> info = loader.loadClass("com.google.android.gms.ads.identifier.AdvertisingIdClient$Info");
+            forceReturnFromProp(info, "getId", "persist.vmos.spoof.gaid");
+        } catch (Throwable t) {
+            Log.d(TAG, "gaid skip: " + t);
+        }
+        // Wi-Fi MAC (getMacAddress + getBSSID) — WifiInfo.
+        try {
+            Class<?> wi = loader.loadClass("android.net.wifi.WifiInfo");
+            forceReturnFromProp(wi, "getMacAddress", "persist.vmos.spoof.wifimac");
+            forceReturnFromProp(wi, "getBSSID", "persist.vmos.spoof.bssid");
+        } catch (Throwable t) {
+            Log.d(TAG, "wifi skip: " + t);
+        }
+        // Hardware serial — Build.getSerial() (static). Build.SERIAL static field
+        // comes from ro.serialno, which resetprop already covers.
+        try {
+            Class<?> build = loader.loadClass("android.os.Build");
+            forceReturnFromProp(build, "getSerial", "persist.vmos.spoof.serial");
+        } catch (Throwable t) {
+            Log.d(TAG, "serial skip: " + t);
+        }
+        // MediaDrm / Widevine device-unique-id (byte[]) — used by DRM/streaming apps.
+        try {
+            hookMediaDrm(loader);
+        } catch (Throwable t) {
+            Log.d(TAG, "mediadrm skip: " + t);
+        }
+        // OAID (MSA SDK). The concrete supplier class varies per integration; this
+        // overrides the common interface getter when a concrete impl exposes it.
+        try {
+            Class<?> supplier = loader.loadClass("com.bun.miitmdid.interfaces.IdSupplier");
+            forceReturnFromProp(supplier, "getOAID", "persist.vmos.spoof.oaid");
+        } catch (Throwable t) {
+            Log.d(TAG, "oaid skip (add the concrete supplier class for your target): " + t);
+        }
+    }
+
+    /** Hook {@code MediaDrm.getPropertyByteArray("deviceUniqueId")} (Widevine ID). */
+    private static void hookMediaDrm(ClassLoader loader) throws Exception {
+        Class<?> drm = loader.loadClass("android.media.MediaDrm");
+        XSHelpers.findAndHookMethod(drm, "getPropertyByteArray", String.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                if (param.args.length >= 1 && "deviceUniqueId".equals(param.args[0])) {
+                    String hex = prop("persist.vmos.spoof.drmid");
+                    if (hex != null && !hex.isEmpty()) param.setResult(hexToBytes(hex));
+                }
+            }
+        });
+        Log.d(TAG, "hooked MediaDrm.getPropertyByteArray(deviceUniqueId)");
+    }
+
+    /** Parse a hex string (e.g. "deadbeef…") into bytes for byte[]-returning hooks. */
+    private static byte[] hexToBytes(String s) {
+        int n = s.length() & ~1;              // ignore a trailing odd nibble
+        byte[] out = new byte[n / 2];
+        for (int i = 0; i < n; i += 2) {
+            out[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i + 1), 16));
+        }
+        return out;
     }
 
     /**

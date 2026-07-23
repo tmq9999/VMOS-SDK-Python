@@ -37,14 +37,26 @@ The plugin **hard-codes nothing**. At hook time it reads spoof values from
 set values headlessly per device with Magisk `resetprop`. An empty/unset
 property means "leave the real value untouched", so you spoof only what you need.
 
-| Property | Overrides (in scoped app) |
-|---|---|
-| `persist.vmos.spoof.imei` | `TelephonyManager.getImei()` / `getDeviceId()` (+ per-slot) |
-| `persist.vmos.spoof.meid` | `getMeid()` |
-| `persist.vmos.spoof.imsi` | `getSubscriberId()` |
-| `persist.vmos.spoof.iccid` | `getSimSerialNumber()` |
-| `persist.vmos.spoof.line1` | `getLine1Number()` |
-| `persist.vmos.spoof.androidid` | `Settings.Secure.getString(…, "android_id")` |
+| Property | `set_identity_props` arg | Overrides (in scoped app) |
+|---|---|---|
+| `persist.vmos.spoof.imei` | `imei` | `TelephonyManager.getImei()` / `getDeviceId()` (+ per-slot) |
+| `persist.vmos.spoof.meid` | `meid` | `getMeid()` |
+| `persist.vmos.spoof.imsi` | `imsi` | `getSubscriberId()` |
+| `persist.vmos.spoof.iccid` | `iccid` | `getSimSerialNumber()` |
+| `persist.vmos.spoof.line1` | `line1` | `getLine1Number()` |
+| `persist.vmos.spoof.androidid` | `android_id` | `Settings.Secure.getString(…, "android_id")` |
+| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (Google Advertising ID) |
+| `persist.vmos.spoof.wifimac` | `wifi_mac` | `WifiInfo.getMacAddress()` |
+| `persist.vmos.spoof.bssid` | `bssid` | `WifiInfo.getBSSID()` |
+| `persist.vmos.spoof.serial` | `serial` | `Build.getSerial()` |
+| `persist.vmos.spoof.drmid` | `drm_id` | `MediaDrm` Widevine device id (hex) |
+| `persist.vmos.spoof.oaid` | `oaid` | MSA `IdSupplier.getOAID()` (best-effort per target) |
+
+**This is the "deep customization" edge:** you hook exactly the getters you
+want, and adding a surface is one line in `xpose_plugin/`. Every extra hook is
+guarded — if a class is absent in the target app it's skipped — so one APK loads
+safely into any app. Native-code reads (NDK/Cronet) and hardware attestation are
+the only ceilings; no software hook beats those.
 
 ## Deploy headless (VMOS SDK)
 

@@ -469,6 +469,12 @@ _IDENTITY_PROPS = {
     "iccid": "persist.vmos.spoof.iccid",
     "line1": "persist.vmos.spoof.line1",
     "android_id": "persist.vmos.spoof.androidid",
+    "gaid": "persist.vmos.spoof.gaid",          # Google Advertising ID
+    "oaid": "persist.vmos.spoof.oaid",          # MSA OAID (best-effort, per target SDK)
+    "wifi_mac": "persist.vmos.spoof.wifimac",   # WifiInfo.getMacAddress()
+    "bssid": "persist.vmos.spoof.bssid",        # WifiInfo.getBSSID()
+    "serial": "persist.vmos.spoof.serial",      # Build.getSerial()
+    "drm_id": "persist.vmos.spoof.drmid",       # MediaDrm/Widevine device id (hex)
 }
 
 
@@ -482,21 +488,32 @@ def set_identity_props(
     iccid: Optional[str] = None,
     line1: Optional[str] = None,
     android_id: Optional[str] = None,
+    gaid: Optional[str] = None,
+    oaid: Optional[str] = None,
+    wifi_mac: Optional[str] = None,
+    bssid: Optional[str] = None,
+    serial: Optional[str] = None,
+    drm_id: Optional[str] = None,
     persist_module: bool = True,
 ) -> Dict[str, str]:
     """Set the ``persist.vmos.spoof.*`` props the XPose spoof plugin reads.
 
     These decouple the (build-once) XPose plugin from per-device values: the
     plugin returns them for ``getImei()`` / ``getSubscriberId()`` /
-    ``Settings.Secure`` etc. in scoped apps. Applied immediately via Magisk
-    ``resetprop``; when ``persist_module`` is true they're also appended to the
-    ``vmos_spoof`` Magisk module's ``custom.conf`` so they survive reboots.
+    ``AdvertisingIdClient.getId()`` / ``WifiInfo.getMacAddress()`` /
+    ``Build.getSerial()`` / ``MediaDrm`` / ``Settings.Secure`` etc. in scoped
+    apps. Applied immediately via Magisk ``resetprop``; when ``persist_module``
+    is true they're also appended to the ``vmos_spoof`` Magisk module's
+    ``custom.conf`` so they survive reboots.
 
-    Only the arguments you pass are set. Returns the ``prop -> value`` map written.
+    ``drm_id`` is a hex string (decoded to bytes by the plugin). Only the
+    arguments you pass are set. Returns the ``prop -> value`` map written.
     """
     shell = PadRootShell(client, pad_code)
     values = {"imei": imei, "meid": meid, "imsi": imsi, "iccid": iccid,
-              "line1": line1, "android_id": android_id}
+              "line1": line1, "android_id": android_id, "gaid": gaid,
+              "oaid": oaid, "wifi_mac": wifi_mac, "bssid": bssid,
+              "serial": serial, "drm_id": drm_id}
     to_set = {_IDENTITY_PROPS[k]: v for k, v in values.items() if v}
     if not to_set:
         return {}

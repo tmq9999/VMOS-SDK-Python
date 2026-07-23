@@ -37,14 +37,26 @@ property `persist.vmos.spoof.*`, nên **một APK dùng cho mọi máy** — set
 headless theo từng máy bằng Magisk `resetprop`. Property rỗng/chưa set nghĩa là
 "giữ nguyên giá trị thật", nên bạn chỉ spoof phần cần thiết.
 
-| Property | Ghi đè (trong app được scope) |
-|---|---|
-| `persist.vmos.spoof.imei` | `TelephonyManager.getImei()` / `getDeviceId()` (+ theo slot) |
-| `persist.vmos.spoof.meid` | `getMeid()` |
-| `persist.vmos.spoof.imsi` | `getSubscriberId()` |
-| `persist.vmos.spoof.iccid` | `getSimSerialNumber()` |
-| `persist.vmos.spoof.line1` | `getLine1Number()` |
-| `persist.vmos.spoof.androidid` | `Settings.Secure.getString(…, "android_id")` |
+| Property | Tham số `set_identity_props` | Ghi đè (trong app được scope) |
+|---|---|---|
+| `persist.vmos.spoof.imei` | `imei` | `TelephonyManager.getImei()` / `getDeviceId()` (+ theo slot) |
+| `persist.vmos.spoof.meid` | `meid` | `getMeid()` |
+| `persist.vmos.spoof.imsi` | `imsi` | `getSubscriberId()` |
+| `persist.vmos.spoof.iccid` | `iccid` | `getSimSerialNumber()` |
+| `persist.vmos.spoof.line1` | `line1` | `getLine1Number()` |
+| `persist.vmos.spoof.androidid` | `android_id` | `Settings.Secure.getString(…, "android_id")` |
+| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (Google Ad ID) |
+| `persist.vmos.spoof.wifimac` | `wifi_mac` | `WifiInfo.getMacAddress()` |
+| `persist.vmos.spoof.bssid` | `bssid` | `WifiInfo.getBSSID()` |
+| `persist.vmos.spoof.serial` | `serial` | `Build.getSerial()` |
+| `persist.vmos.spoof.drmid` | `drm_id` | `MediaDrm` Widevine device id (hex) |
+| `persist.vmos.spoof.oaid` | `oaid` | MSA `IdSupplier.getOAID()` (best-effort theo target) |
+
+**Đây chính là điểm "tùy biến sâu":** bạn hook đúng những getter mình muốn, và
+thêm một bề mặt chỉ tốn một dòng trong `xpose_plugin/`. Mỗi hook thêm đều được
+bọc guard — class không có trong app đích thì bỏ qua — nên một APK nạp an toàn
+vào mọi app. Chỉ có đọc qua native (NDK/Cronet) và hardware attestation là trần
+giới hạn; không phương pháp phần mềm nào vượt được hai cái đó.
 
 ## Triển khai headless (VMOS SDK)
 

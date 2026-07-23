@@ -152,3 +152,18 @@ def test_load_xpose_plugin_requires_one_source():
     client = FakePadClient(lambda s: "")
     with pytest.raises(ValueError):
         load_xpose_plugin(client, "ACP1", name="n", target_pkg="p")  # neither url nor path
+
+
+def test_set_identity_props_extended_surfaces():
+    from vmos.spoof import set_identity_props
+    client = FakePadClient(lambda s: "")
+    out = set_identity_props(client, "ACP1", gaid="38400000-8cf0-11bd-b23e-10b96e40000d",
+                             wifi_mac="02:00:00:11:22:33", serial="1A2B3C4D",
+                             drm_id="deadbeefcafe0011")
+    joined = "\n".join(client.scripts)
+    assert "persist.vmos.spoof.gaid" in joined
+    assert "persist.vmos.spoof.wifimac" in joined and "02:00:00:11:22:33" in joined
+    assert "persist.vmos.spoof.serial" in joined
+    assert out["persist.vmos.spoof.drmid"] == "deadbeefcafe0011"
+    # unset fields must not be written
+    assert "persist.vmos.spoof.imei" not in joined

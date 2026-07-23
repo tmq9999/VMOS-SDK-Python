@@ -1,10 +1,12 @@
 # VMOS private device-spoof plugin (XPose / `apmt`)
 
 A **private, self-written** hook plugin for VMOS's **native XPose framework** —
-no LSPosed, no third-party module. It hooks the app-side Java getters
-(`TelephonyManager`, `Settings.Secure`) so a target app reads the IMEI / IMSI /
-ICCID / phone-number / ANDROID_ID **you** choose — the layer `resetprop` alone
-cannot reach.
+no LSPosed, no third-party module. It hooks the app-side Java getters so a target
+app reads the identity **you** choose — the layer `resetprop` alone cannot reach.
+Coverage: IMEI/MEID/IMSI/ICCID/phone (`TelephonyManager`), ANDROID_ID
+(`Settings.Secure`), GAID (`AdvertisingIdClient`), Wi-Fi MAC/BSSID (`WifiInfo`),
+hardware serial (`Build.getSerial()`), Widevine ID (`MediaDrm`), MSA OAID — and
+you extend it by adding a hook for whatever getter a specific app reads.
 
 Why this over LSPosed modules: VMOS ships the XPose framework in-image
 (`/system/bin/apmt`, confirmed working), so a plugin built against its API is
@@ -19,17 +21,25 @@ The plugin hard-codes **nothing**. It reads spoof values from
 device — set the values headlessly per instance with Magisk `resetprop`
 (persist them via a Magisk module). Empty/unset ⇒ that field is left real.
 
-| Property | Overrides |
-|---|---|
-| `persist.vmos.spoof.imei` | `TelephonyManager.getImei()/getDeviceId()` (+ per-slot) |
-| `persist.vmos.spoof.meid` | `getMeid()` |
-| `persist.vmos.spoof.imsi` | `getSubscriberId()` |
-| `persist.vmos.spoof.iccid` | `getSimSerialNumber()` |
-| `persist.vmos.spoof.line1` | `getLine1Number()` |
-| `persist.vmos.spoof.androidid` | `Settings.Secure.getString(..., "android_id")` |
+| Property | `set_identity_props` arg | Overrides |
+|---|---|---|
+| `persist.vmos.spoof.imei` | `imei` | `TelephonyManager.getImei()/getDeviceId()` (+ per-slot) |
+| `persist.vmos.spoof.meid` | `meid` | `getMeid()` |
+| `persist.vmos.spoof.imsi` | `imsi` | `getSubscriberId()` |
+| `persist.vmos.spoof.iccid` | `iccid` | `getSimSerialNumber()` |
+| `persist.vmos.spoof.line1` | `line1` | `getLine1Number()` |
+| `persist.vmos.spoof.androidid` | `android_id` | `Settings.Secure.getString(..., "android_id")` |
+| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (Google Ad ID) |
+| `persist.vmos.spoof.wifimac` | `wifi_mac` | `WifiInfo.getMacAddress()` |
+| `persist.vmos.spoof.bssid` | `bssid` | `WifiInfo.getBSSID()` |
+| `persist.vmos.spoof.serial` | `serial` | `Build.getSerial()` |
+| `persist.vmos.spoof.drmid` | `drm_id` | `MediaDrm.getPropertyByteArray("deviceUniqueId")` — Widevine (hex) |
+| `persist.vmos.spoof.oaid` | `oaid` | MSA `IdSupplier.getOAID()` (best-effort; add concrete supplier per target) |
 
 The VMOS SDK helper `vmos.spoof.set_identity_props(...)` sets these for you, and
-`vmos.spoof.load_xpose_plugin(...)` runs the `apmt` load.
+`vmos.spoof.load_xpose_plugin(...)` runs the `apmt` load. Every extra hook is
+guarded: if a class isn't present in the target app it's skipped, so the same
+APK is safe to load anywhere.
 
 ## Build (needs a normal Android toolchain — not buildable inside the VMOS shell)
 
