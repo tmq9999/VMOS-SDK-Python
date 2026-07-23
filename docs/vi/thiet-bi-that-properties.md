@@ -134,7 +134,21 @@ Nói cách khác: trên **thiết bị thật**, phần **model/fingerprint** (r
 
 **➡️ Kết luận:** trên **thiết bị thật**, `updatePadProperties` per-key **không đổi được định danh** — API "nuốt" request (trả 200) nhưng fingerprint bị khoá vào **ADI template**. Muốn đổi → dùng `client.phone.replace_real_adi_template(...)` hoặc `replace_pad(...)`/`pad_replace_new(...)`. Các thuộc tính SIM/GPS/timezone/proxy dùng endpoint chuyên dụng ở mục 3 (chưa test thay đổi trong thí nghiệm này).
 
-> ⚠️ Chưa kiểm chứng lớp **persistent + khởi động lại**: thí nghiệm không reboot máy. Lớp dynamic (docs nói "hiệu lực ngay") đã xác nhận **bị bỏ qua** trên máy thật. Trên **máy ảo** kỳ vọng per-key sẽ có hiệu lực — chạy script probe để tự xác nhận theo loại instance của bạn.
+### Kiểm chứng sâu hơn — cơ chế nào THỰC SỰ đổi được identity? (real device, 2026-07-24)
+
+Chạy thêm 3 thí nghiệm mutate trực tiếp (đã khôi phục về trạng thái gốc Pixel 7 Pro / US / Verizon sau khi test):
+
+| Cơ chế | Endpoint / SDK | Kết quả (verify bằng `getprop` runtime thật) |
+|---|---|---|
+| Per-key **dynamic** | `updatePadProperties` (systemPropertiesList) | ❌ **Bị bỏ qua** — 200 nhưng getprop không đổi |
+| Per-key **persistent + reboot** | `updatePadProperties` (systemPersistPropertiesList) → `restart` | ❌ **Bị bỏ qua** — sau reboot getprop vẫn `Pixel 7 Pro` |
+| **ADI template** | `replace_real_adi_template(wipe_data=false, real_phone_template_id=44)` | ✅ **ĐỔI ĐƯỢC** — cả `ro.product.model/brand/manufacturer` + `ro.build.fingerprint` chuyển sang Samsung `SM-A225F` (`samsung/a22nstur/...`) trong ~40s (task 2→3). Đổi lại id=36 → về `Pixel 7 Pro`. |
+| **SIM theo quốc gia** | `update_sim(country_code="VN")` | ✅ **ĐỔI ĐƯỢC** — getprop `gsm.operator.iso-country=vn`, `gsm.sim.operator.alpha=Vinaphone`, `MCCMNC=452,02`, `sim.state=LOADED` (cần ~2 phút cho restart settle). |
+| **GPS inject** | `gps_inject_info(lat, lng)` | ⚪ **Accepted** (dispatch=true) nhưng `dumpsys location` báo `last location=null` — cần app chủ động request vị trí mới quan sát được; chưa kết luận. |
+
+**➡️ Kết luận tổng:** Trên thiết bị thật, **KHÔNG** đổi fingerprint bằng per-key (cả dynamic lẫn persistent-sau-reboot). Muốn đổi **model/fingerprint** → **ADI template** (đã kiểm chứng). Muốn đổi **SIM/nhà mạng/quốc gia** → `update_sim` theo country code (đã kiểm chứng). Mỗi lần đổi ADI/SIM đều **tự sinh IMEI/IMSI mới**.
+
+> 💡 Template khả dụng (Android 13) lấy từ `template_list()`: id 36=Google Pixel 7 Pro, 38=Samsung Galaxy A03s, 40=Vivo Y33S, 44=Samsung Galaxy A53, 48=OPPO Reno6, 50=Samsung A32, 52=Realme 9i, 54=Samsung A71, 56=Redmi 10, 60=Samsung Note 20, 62=Samsung A22… (`goodFingerprintId` + `goodFingerprintName` + `goodAndroidVersion`; phải khớp phiên bản Android của máy).
 
 ## Lưu ý trung thực về giới hạn tài liệu
 

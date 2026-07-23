@@ -116,7 +116,21 @@ In short: on a **real device**, the **model/fingerprint** (ro.product.\*, ro.bui
 
 **➡️ Conclusion:** on a **real device**, per-key `updatePadProperties` **cannot change the identity** — the API swallows the request (returns 200) but the fingerprint is locked to the **ADI template**. To change it, use `client.phone.replace_real_adi_template(...)` or `replace_pad(...)` / `pad_replace_new(...)`. SIM/GPS/timezone/proxy are handled by the dedicated endpoints in section 3 (their write behavior was not mutated in this experiment).
 
-> ⚠️ The **persistent + restart** path was not verified (the experiment issues no reboot). The dynamic layer (docs say "immediate") is confirmed **ignored** on a real device. On a **virtual** instance per-key writes are expected to take effect — run the probe to confirm for your instance type.
+### Deeper verification — which mechanism ACTUALLY changes identity? (real device, 2026-07-24)
+
+Three more direct mutation experiments (device restored to Pixel 7 Pro / US / Verizon afterward):
+
+| Mechanism | Endpoint / SDK | Result (verified via live `getprop`) |
+|---|---|---|
+| Per-key **dynamic** | `updatePadProperties` (systemPropertiesList) | ❌ **Ignored** — 200 but getprop unchanged |
+| Per-key **persistent + reboot** | `updatePadProperties` (systemPersistPropertiesList) → `restart` | ❌ **Ignored** — after reboot getprop still `Pixel 7 Pro` |
+| **ADI template** | `replace_real_adi_template(wipe_data=false, real_phone_template_id=44)` | ✅ **CHANGES IT** — `ro.product.model/brand/manufacturer` + `ro.build.fingerprint` flipped to Samsung `SM-A225F` (`samsung/a22nstur/...`) in ~40s (task 2→3). Re-applying id=36 → back to `Pixel 7 Pro`. |
+| **SIM by country** | `update_sim(country_code="VN")` | ✅ **CHANGES IT** — getprop `gsm.operator.iso-country=vn`, `gsm.sim.operator.alpha=Vinaphone`, `MCCMNC=452,02`, `sim.state=LOADED` (needs ~2 min for the restart to settle). |
+| **GPS inject** | `gps_inject_info(lat, lng)` | ⚪ **Accepted** (dispatch=true) but `dumpsys location` shows `last location=null` — needs an app actively requesting location to observe; inconclusive. |
+
+**➡️ Overall conclusion:** on a real device you **cannot** change the fingerprint via per-key writes (dynamic or persistent-after-reboot). To change **model/fingerprint** → **ADI template** (verified). To change **SIM/operator/country** → `update_sim` by country code (verified). Each ADI/SIM change also **regenerates IMEI/IMSI**.
+
+> 💡 Available Android-13 templates from `template_list()`: id 36=Google Pixel 7 Pro, 38=Samsung Galaxy A03s, 40=Vivo Y33S, 44=Samsung Galaxy A53, 48=OPPO Reno6, 50=Samsung A32, 52=Realme 9i, 54=Samsung A71, 56=Redmi 10, 60=Samsung Note 20, 62=Samsung A22… (`goodFingerprintId` + `goodFingerprintName` + `goodAndroidVersion`; must match the instance's Android version).
 
 ## Honest note on documentation limits
 
