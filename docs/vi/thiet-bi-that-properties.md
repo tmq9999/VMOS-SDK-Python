@@ -78,6 +78,21 @@ Nói cách khác: trên **thiết bị thật**, phần **model/fingerprint** (r
 | `VAID` | ID quảng cáo theo hãng |
 | `AAID` | ID quảng cáo Google Play Services |
 
+### e) Field quan sát được từ máy thật (không có trong tài liệu chính thức)
+
+> ⚠️ **Observed live, not in official docs.** Đọc `padProperties` trên một **thiết bị thật** (Pixel 7 Pro, Android 13) vào 2026-07-24 cho thấy nhóm `systemPropertiesList` còn trả về các key **ngoài** danh mục tài liệu. Chúng phản ánh phần cứng/định danh do ADI template nạp; hãy coi là chỉ-đọc trừ khi VMOS xác nhận cho ghi.
+
+| Key | Ví dụ giá trị (máy thật) | Ý nghĩa |
+|---|---|---|
+| `ro.build.version.release` | `13` | Phiên bản Android (docs chỉ liệt kê `version.codename` / `version.incremental`) |
+| `wifiMac` | `00:02:00:00:00:00` | Địa chỉ MAC WiFi (khác `bt/mac` ở nhóm Setting) |
+| `bluetoothaddr` | `02:00:00:00:00:00` | Địa chỉ Bluetooth (dạng đọc-ra; docs dùng `bt/mac` khi ghi) |
+| `gpuVendor` | `ARM` | Hãng GPU |
+| `gpuRenderer` | `Mali-G710` | Bộ render GPU |
+| `gpuVersion` | `OpenGL ES 3.2 v1.g18p0-...` | Phiên bản OpenGL/GPU |
+
+> 📌 Lưu ý casing khi **đọc ra** trên máy thật: nhóm modem trả `imei` / `phonenum` / `SimOperatorName` / `simCountryIso` (khác các key `IMEI` / `PhoneNum` / `OpName` mà tài liệu dùng để **ghi vào**).
+
 **Khác biệt hai endpoint per-key:**
 - `updatePadProperties` — **động**, máy phải đang bật, **hiệu lực ngay**; nhóm `*PropertiesList` (không bền) mất sau restart, `*PersistPropertiesList` giữ lại.
 - `updatePadAndroidProp` — **tĩnh**, lưu **bền**, khởi tạo lại mỗi lần boot, hiệu lực **sau khi khởi động lại** (không cần gọi lại sau reset/restart).

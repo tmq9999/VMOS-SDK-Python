@@ -60,6 +60,21 @@ In short: on a **real device**, the **model/fingerprint** (ro.product.\*, ro.bui
 ### d) OAID — advertising identifiers
 `oaidPropertiesList` — `UDID`, `OAID`, `VAID`, `AAID`.
 
+### e) Fields observed live (not in official docs)
+
+> ⚠️ **Observed live, not in official docs.** Reading `padProperties` on a **real device** (Pixel 7 Pro, Android 13) on 2026-07-24 showed the `systemPropertiesList` group also returns keys **beyond** the documented catalog. They reflect hardware/identity bundled by the ADI template; treat them as read-only unless VMOS confirms they're writable.
+
+| Key | Example value (real device) | Meaning |
+|---|---|---|
+| `ro.build.version.release` | `13` | Android version (docs only list `version.codename` / `version.incremental`) |
+| `wifiMac` | `00:02:00:00:00:00` | WiFi MAC address (distinct from `bt/mac` in the Setting group) |
+| `bluetoothaddr` | `02:00:00:00:00:00` | Bluetooth address (read-out form; docs use `bt/mac` for writes) |
+| `gpuVendor` | `ARM` | GPU vendor |
+| `gpuRenderer` | `Mali-G710` | GPU renderer |
+| `gpuVersion` | `OpenGL ES 3.2 v1.g18p0-...` | OpenGL/GPU version |
+
+> 📌 Read-out casing on a real device: the modem group returns `imei` / `phonenum` / `SimOperatorName` / `simCountryIso` (different from the `IMEI` / `PhoneNum` / `OpName` keys the docs use for **writing**).
+
 **Difference between the two per-key endpoints:**
 - `updatePadProperties` — **dynamic**, instance must be powered on, **effective immediately**; `*PropertiesList` (non-persistent) is lost after restart, `*PersistPropertiesList` survives.
 - `updatePadAndroidProp` — **static**, **persistent**, re-initialized on each boot, effective **after restart** (no need to call again after reset/restart).
