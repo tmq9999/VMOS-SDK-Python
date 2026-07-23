@@ -51,6 +51,8 @@ __all__ = [
     "enable_lsposed_ui",
     "scope_lsposed_module",
     "PIXEL_10_PRO_A17",
+    "PIXEL_10_A17",
+    "PIXEL_10_PRO_XL_A17",
 ]
 
 # ---------------------------------------------------------------------------
@@ -145,17 +147,35 @@ class DeviceProfile:
         return props
 
 
-# A ready-made example profile: a device VMOS does not offer in its catalog.
+# Ready-made presets — REAL fingerprints from the authoritative Pixel-Props/build.prop
+# dataset (release 20260711, CP2A.260705.006 = Android 17 / SDK 37). Codenames:
+# blazer = Pixel 10 Pro, frankel = Pixel 10, mustang = Pixel 10 Pro XL.
 PIXEL_10_PRO_A17 = DeviceProfile(
     model="Pixel 10 Pro",
     brand="google",
     manufacturer="Google",
-    device="frankel",
-    product_name="frankel",
-    fingerprint="google/frankel/frankel:17/BP1A.250101.001/13000000:user/release-keys",
+    device="blazer",
+    product_name="blazer",
+    fingerprint="google/blazer/blazer:17/CP2A.260705.006/15641320:user/release-keys",
     release="17",
     sdk=37,
     security_patch="2026-07-05",
+)
+
+#: Pixel 10 (base, codename frankel) — Android 17 / SDK 37.
+PIXEL_10_A17 = DeviceProfile(
+    model="Pixel 10", brand="google", manufacturer="Google",
+    device="frankel", product_name="frankel",
+    fingerprint="google/frankel/frankel:17/CP2A.260705.006/15641320:user/release-keys",
+    release="17", sdk=37, security_patch="2026-07-05",
+)
+
+#: Pixel 10 Pro XL (codename mustang) — Android 17 / SDK 37.
+PIXEL_10_PRO_XL_A17 = DeviceProfile(
+    model="Pixel 10 Pro XL", brand="google", manufacturer="Google",
+    device="mustang", product_name="mustang",
+    fingerprint="google/mustang/mustang:17/CP2A.260705.006/15641320:user/release-keys",
+    release="17", sdk=37, security_patch="2026-07-05",
 )
 
 

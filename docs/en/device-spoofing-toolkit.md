@@ -19,13 +19,20 @@ from vmos import VMOSClient, DeviceProfile, apply_profile, verify_profile
 with VMOSClient() as c:
     profile = DeviceProfile(
         model="Pixel 10 Pro", brand="google", manufacturer="Google",
-        device="frankel",
-        fingerprint="google/frankel/frankel:17/BP1A.250101.001/13000000:user/release-keys",
+        device="blazer",   # Pixel 10 Pro = blazer (frankel = Pixel 10, mustang = Pixel 10 Pro XL)
+        fingerprint="google/blazer/blazer:17/CP2A.260705.006/15641320:user/release-keys",
         release="17", sdk=37, android_id="0123456789abcdef",
     )
     apply_profile(c, "ACP...", profile, persist=True)    # resetprop + boot module + android_id
     print(verify_profile(c, "ACP...", profile)["ok"])     # getprop read-back + compare
 ```
+
+> **Use REAL fingerprints.** Codenames matter: **blazer = Pixel 10 Pro**,
+> frankel = Pixel 10, mustang = Pixel 10 Pro XL. Pull authentic, current
+> per-device build props from [Pixel-Props/build.prop](https://github.com/Pixel-Props/build.prop)
+> (built-in presets `PIXEL_10_PRO_A17`, `PIXEL_10_A17`, `PIXEL_10_PRO_XL_A17`
+> use these real values). A fabricated/mismatched fingerprint is an easy
+> detection signal.
 
 ## CLI
 
@@ -50,9 +57,9 @@ python examples/12_device_spoof_toolkit.py --pad ACP... --remove
 
 ```
 apply PIXEL_10_PRO_A17 (persist=True): 43 props
-verify now:        model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/frankel/... OK
+verify now:        model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/blazer/blazer:17/... OK
 --- real REBOOT ---
-verify after boot: model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/frankel/... OK  (PERSISTED)
+verify after boot: model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/blazer/blazer:17/... OK  (PERSISTED)
 remove_spoof + reboot → back to Pixel 7 Pro / 13 / 33  OK
 ```
 

@@ -32,6 +32,8 @@ import sys
 from vmos import VMOSClient
 from vmos.spoof import (
     PIXEL_10_PRO_A17,
+    PIXEL_10_A17,
+    PIXEL_10_PRO_XL_A17,
     DeviceProfile,
     apply_profile,
     enable_magisk_ui,
@@ -41,7 +43,7 @@ from vmos.spoof import (
     PadRootShell,
 )
 
-PRESETS = {"pixel10pro": PIXEL_10_PRO_A17}
+PRESETS = {"pixel10pro": PIXEL_10_PRO_A17, "pixel10": PIXEL_10_A17, "pixel10proxl": PIXEL_10_PRO_XL_A17}
 
 
 def main() -> int:

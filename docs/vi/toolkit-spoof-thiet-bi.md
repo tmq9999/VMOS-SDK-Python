@@ -20,13 +20,19 @@ with VMOSClient() as c:
     # Hồ sơ tùy chỉnh — model VMOS không có
     profile = DeviceProfile(
         model="Pixel 10 Pro", brand="google", manufacturer="Google",
-        device="frankel",
-        fingerprint="google/frankel/frankel:17/BP1A.250101.001/13000000:user/release-keys",
+        device="blazer",   # Pixel 10 Pro = blazer (frankel = Pixel 10, mustang = Pixel 10 Pro XL)
+        fingerprint="google/blazer/blazer:17/CP2A.260705.006/15641320:user/release-keys",
         release="17", sdk=37, android_id="0123456789abcdef",
     )
     apply_profile(c, "ACP...", profile, persist=True)   # resetprop + boot module + android_id
     print(verify_profile(c, "ACP...", profile)["ok"])    # đọc lại getprop, so khớp
 ```
+
+> **Dùng fingerprint THẬT.** Codename rất quan trọng: **blazer = Pixel 10 Pro**,
+> frankel = Pixel 10, mustang = Pixel 10 Pro XL. Lấy build props thật, cập nhật
+> theo từng máy từ [Pixel-Props/build.prop](https://github.com/Pixel-Props/build.prop)
+> (preset sẵn `PIXEL_10_PRO_A17`, `PIXEL_10_A17`, `PIXEL_10_PRO_XL_A17` dùng đúng
+> giá trị thật). Fingerprint bịa/lệch codename là dấu hiệu dễ bị phát hiện.
 
 ## Dùng qua CLI
 
@@ -58,9 +64,9 @@ python examples/12_device_spoof_toolkit.py --pad ACP... --remove
 
 ```
 apply PIXEL_10_PRO_A17 (persist=True): 43 props
-verify ngay:        model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/frankel/... ✅
+verify ngay:        model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/blazer/blazer:17/... ✅
 --- REBOOT thật ---
-verify sau reboot:  model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/frankel/... ✅ PERSISTED
+verify sau reboot:  model=Pixel 10 Pro | release=17 | sdk=37 | fingerprint=google/blazer/blazer:17/... ✅ PERSISTED
 remove_spoof + reboot → về Pixel 7 Pro / 13 / 33 ✅
 ```
 
