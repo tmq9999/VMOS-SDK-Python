@@ -1,0 +1,63 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2026-07-24
+
+First stable release. 🎉
+
+### Added
+
+- **Complete API coverage** — all **152 endpoints** from the official VMOS Cloud
+  Server OpenAPI documentation, organized into 11 client namespaces:
+  `instance` (50), `apps` (10), `tasks` (4), `phone` (21), `storage` (11),
+  `static_proxy` (7), `dynamic_proxy` (13), `email` (5), `automation` (25),
+  `token` (2), `touch` (4).
+- **V2 Simplified Signature** authentication
+  (`X-Sign = SHA-256(SK + timestamp + path + bodyOrQuery)`), verified against
+  the official documentation test vector. Exact-bytes signing: JSON bodies are
+  serialized once and signed verbatim; GET requests sign the raw query string;
+  multipart uploads sign an empty string.
+- **Sync and async clients** — `VMOSClient` and `AsyncVMOSClient` (httpx),
+  identical APIs, context-manager support, connection-error retries with
+  exponential backoff, credentials via arguments or `VMOS_ACCESS_KEY` /
+  `VMOS_SECRET_KEY` environment variables.
+- **Error hierarchy** — `VMOSError` → `VMOSHTTPError` (transport),
+  `VMOSAPIError` (business, with `.code`/`.msg`/`.ts`/`.data`),
+  `VMOSAuthError` (2019/2031/2032/2033), `VMOSRateLimitError` (1218).
+- **Webhook callback parsing** — `vmos.callbacks.parse_callback()` →
+  `CallbackEvent` for all 12 documented callback types (ADB results, file
+  uploads, app operations, image upload/upgrade, instance status).
+- **Forward compatibility** — every method accepts `**extra`, sent verbatim,
+  so new VMOS parameters work without an SDK update; `client.request()` is a
+  signed escape hatch for any path.
+- **Test suite (182 tests)** — official signing vector, client behavior
+  (errors, GET/POST/multipart/unicode), callback parsing, and a spec-driven
+  test that verifies path, HTTP method, parameter names, and signature for
+  **every single endpoint**.
+- **Bilingual documentation** — English + Vietnamese README, per-namespace API
+  reference in `docs/en/` and `docs/vi/`, 8 runnable examples.
+- **AI-assistant guides** — `CLAUDE.md` and `AGENTS.md` plus a
+  machine-readable endpoint manifest (`tests/data/endpoints_manifest.json`).
+- **Self-regenerating toolchain** — `scripts/` parses the official docs into a
+  spec and regenerates API modules, manifest, and reference docs.
+- **CI** — GitHub Actions workflow running the suite on Python 3.9–3.13.
+
+### Production findings (live-verified 2026-07-24)
+
+- POST & GET signing confirmed against the production API across `phone`,
+  `instance`, `apps`, `tasks`, and `touch` namespaces — including a full
+  UI-automation flow (humanized click → focused-field text input → screenshot
+  confirmation) on a real instance.
+- `instance.screenshot()` is **synchronous** in production and returns a
+  signed, expiring `accessUrl` per pad (the docs describe an async variant).
+- Task tracking that works in production: `tasks.pad_task_detail()` and
+  `tasks.get_task_status()`; ADB stdout arrives in `taskResult`.
+- Documented but not yet deployed on the production gateway (HTTP 404):
+  `padDetail`, `screenshotInfo`, `executeScriptInfo`, `padExecuteTaskInfo` —
+  the SDK keeps these wrappers for when VMOS ships them, and the docs point to
+  the working alternatives.
+
+[1.0.0]: https://github.com/tmq9999/VMOS-SDK-Python/releases/tag/v1.0.0
