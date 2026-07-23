@@ -103,6 +103,9 @@ Webhooks: `vmos.callbacks.parse_callback(payload_dict)` → `CallbackEvent`
   tuples `("name.apk", b"...")`; the file body is intentionally not signed (per spec).
 - Batch endpoints take plural args (`pad_codes: list`); single-target endpoints
   take `pad_code: str`. Docstrings and the manifest are authoritative.
+- **`instance.pad_detail` is documented but NOT deployed** on the production
+  gateway as of 2026-07 (HTTP 404 → `VMOSHTTPError`). List instances with
+  `client.phone.user_pad_list()` instead.
 
 ## Cookbook
 

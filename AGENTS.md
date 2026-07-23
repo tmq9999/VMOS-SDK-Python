@@ -75,6 +75,8 @@ data = client.instance.pad_detail(rows=20)      # returns response `data`; raise
   unknown/new API params go through `**extra`; `None` values are omitted.
 - Mutating ops return async **tasks** (`taskId`) — poll `client.tasks.*` or
   parse webhooks with `vmos.callbacks.parse_callback`.
+- `instance.pad_detail` is documented by VMOS but 404s on the current
+  production gateway — list instances via `client.phone.user_pad_list()`.
 - Known placements: `pad_info`/`user_pad_list` → `client.phone`;
   `upload_file_v3` (URL push) → `client.apps`; `upload_file` (multipart) →
   `client.storage`; RPA deep paths → `client.automation.scripts_list()` etc.

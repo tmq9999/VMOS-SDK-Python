@@ -19,6 +19,7 @@ Complete, production-ready Python SDK for the [VMOS Cloud Server OpenAPI](https:
 - 🚨 **Clean error model**: `VMOSAPIError` (business errors), `VMOSAuthError` (signature/key issues 2019/2031/2032/2033), `VMOSRateLimitError`, `VMOSHTTPError`.
 - 📥 **Webhook callbacks**: `vmos.callbacks.parse_callback()` parses all documented callback payloads (ADB results, file uploads, app operations, status changes...).
 - 🧪 **182 tests**: official signing vector + a spec-driven test for *every single endpoint* (path, HTTP method, parameter names, signature over exact bytes).
+- ✅ **Live-verified**: POST & GET signing confirmed against the production API across multiple namespaces (`phone`, `instance`, `apps`).
 - 🤖 **AI-ready**: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) and a machine-readable endpoint manifest ([`tests/data/endpoints_manifest.json`](tests/data/endpoints_manifest.json)) so Claude, Codex, Cursor & friends can use the SDK at full fidelity.
 
 ### Installation
@@ -124,6 +125,7 @@ Need the raw envelope (`code`, `msg`, `ts`, `data`) without raising? Use `client
 - **Async operations**: many endpoints (restart, screenshots, ADB, file push) return a `taskId`; poll `client.tasks.*` or receive webhook callbacks (`vmos.callbacks.parse_callback`).
 - **Forward compatible**: any new parameter VMOS adds can be passed today via `**extra`.
 - **Touch rate limit**: the humanized touch APIs reject repeat calls to the same device within 2 s (code 1218 → `VMOSRateLimitError`).
+- **`pad_detail` heads-up**: the docs describe `/padApi/padDetail`, but the production gateway currently returns HTTP 404 for it (docs ahead of deployment). Use `client.phone.user_pad_list()` to list instances; `client.instance.pad_detail()` stays in the SDK for when VMOS ships it.
 
 ### Examples
 
@@ -160,6 +162,7 @@ SDK Python **đầy đủ và sẵn sàng cho production** dành cho [VMOS Cloud
 - 🚨 **Mô hình lỗi rõ ràng**: `VMOSAPIError` (lỗi nghiệp vụ), `VMOSAuthError` (lỗi chữ ký/khóa 2019/2031/2032/2033), `VMOSRateLimitError`, `VMOSHTTPError`.
 - 📥 **Webhook callback**: `vmos.callbacks.parse_callback()` phân tích mọi payload callback trong tài liệu (kết quả ADB, tải file, thao tác ứng dụng, thay đổi trạng thái...).
 - 🧪 **182 bài test**: test vector chữ ký chính thức + test tự động cho *từng endpoint một* (đường dẫn, HTTP method, tên tham số, chữ ký trên đúng byte gửi đi).
+- ✅ **Đã kiểm chứng với API thật**: chữ ký POST & GET xác nhận hoạt động trên API production qua nhiều namespace (`phone`, `instance`, `apps`).
 - 🤖 **Sẵn sàng cho AI**: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) và manifest endpoint dạng máy-đọc-được ([`tests/data/endpoints_manifest.json`](tests/data/endpoints_manifest.json)) để Claude, Codex, Cursor... dùng SDK chính xác tối đa.
 
 ### Cài đặt
@@ -265,6 +268,7 @@ Cần nguyên vẹn envelope (`code`, `msg`, `ts`, `data`) mà không ném lỗi
 - **Thao tác bất đồng bộ**: nhiều endpoint (restart, chụp màn hình, ADB, đẩy file) trả về `taskId`; poll qua `client.tasks.*` hoặc nhận webhook callback (`vmos.callbacks.parse_callback`).
 - **Tương thích tương lai**: tham số mới VMOS thêm sau này truyền ngay qua `**extra`.
 - **Giới hạn tốc độ cảm ứng**: API touch giống người thật từ chối gọi lặp lại cùng thiết bị trong vòng 2 giây (code 1218 → `VMOSRateLimitError`).
+- **Lưu ý `pad_detail`**: tài liệu mô tả `/padApi/padDetail` nhưng gateway production hiện trả HTTP 404 (tài liệu đi trước deployment). Dùng `client.phone.user_pad_list()` để liệt kê instance; `client.instance.pad_detail()` vẫn giữ trong SDK chờ VMOS triển khai.
 
 ### Ví dụ
 
