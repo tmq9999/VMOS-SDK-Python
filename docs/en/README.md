@@ -20,6 +20,7 @@ Every namespace below is an attribute of `VMOSClient` / `AsyncVMOSClient` (e.g. 
 
 ## Topic guides
 
+- [**Device Profile Framework — design of record**](device-profile-framework.md)
 - [Cloud Real Device — changeable properties](real-device-properties.md)
 - [Device-Spoofing Toolkit (reseller)](device-spoofing-toolkit.md)
 - [Xposed/LSPosed spoof modules — evaluation](xposed-spoof-modules.md)

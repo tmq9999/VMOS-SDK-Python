@@ -20,6 +20,7 @@ Mỗi namespace bên dưới là một thuộc tính của `VMOSClient` / `Async
 
 ## Hướng dẫn chuyên đề
 
+- [**Device Profile Framework — thiết kế chính thức**](device-profile-framework-vi.md)
 - [Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)
 - [Toolkit spoof thiết bị (reseller)](toolkit-spoof-thiet-bi.md)
 - [Đánh giá module Xposed/LSPosed spoof](xposed-spoof-modules-vi.md)
