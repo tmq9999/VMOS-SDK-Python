@@ -47,8 +47,30 @@ __all__ = [
     "remove_spoof",
     "magisk_ready",
     "enable_magisk_ui",
+    "lsposed_ready",
+    "enable_lsposed_ui",
     "PIXEL_10_PRO_A17",
 ]
+
+# ---------------------------------------------------------------------------
+# What is / isn't spoofable on a VMOS real device (live-verified 2026-07):
+#
+#   ✅ build.prop identity (ro.product.*, ro.build.*, version.release/sdk,
+#      fingerprint)  -> resetprop (this toolkit). Persists via Magisk module.
+#   ❌ IMEI          -> held by the RIL/telephony framework, NOT a system prop;
+#      resetprop has no effect. `service call iphonesubinfo 1` is the oracle.
+#   ❌ OAID          -> no shell/prop lever exposed.
+#   ❌ android_id    -> `settings put secure android_id` is IGNORED on VMOS real
+#      devices (verified, incl. --user 0). apply_profile still attempts it (works
+#      on some virtual images) but verify_profile will report the truth.
+#
+# Deep IMEI / OAID / android_id spoofing therefore requires a framework hook:
+# enable LSposed (enable_lsposed_ui) AND install an Xposed device-spoofing
+# module (an APK that hooks TelephonyManager.getImei(), the OAID SDK, and
+# Settings.Secure ANDROID_ID). VMOS's Kitsune ships the LSposed *framework*
+# (Zygisk module `zygisk_lsposed`, `lspd` daemon) but no spoofing module and no
+# readily-scriptable Manager UI, so that module step is out of scope here.
+# ---------------------------------------------------------------------------
 
 #: Kitsune Magisk main binary on VMOS real devices (exposes the ``resetprop`` applet).
 MAGISK_BIN = "/data/adb/magisk/magisk64"
@@ -262,11 +284,15 @@ def apply_profile(
     props = profile.build_props()
     shell.sh(resetprop_command(props))
     if set_android_id and profile.android_id:
+        # NOTE: verified ineffective on VMOS real devices (settings write ignored);
+        # kept for virtual images. Trust verify_profile for the real outcome.
         shell.sh(f"settings put secure android_id {_sh_quote(profile.android_id)}")
     if persist:
         install_persistence(shell, profile)
     return {"pad_code": pad_code, "applied": len(props), "persisted": persist,
-            "android_id": bool(profile.android_id and set_android_id)}
+            "android_id_attempted": bool(profile.android_id and set_android_id),
+            "android_id_note": "settings write is ignored on VMOS real devices; "
+                               "needs an LSposed spoofing module"}
 
 
 def verify_profile(client: "VMOSClient", pad_code: str, profile: "DeviceProfile") -> Dict[str, Any]:
@@ -352,3 +378,63 @@ def enable_magisk_ui(client: "VMOSClient", pad_code: str, *, settle: float = 30.
     shell.sh(f"input tap {int(w * 0.67)} {int(h * 0.557)}")
     time.sleep(settle)
     return magisk_ready(shell)
+
+
+def lsposed_ready(shell: "PadRootShell") -> bool:
+    """True when the LSposed framework is active (``lspd`` daemon + zygisk module)."""
+    out = shell.sh(
+        "ls -d /data/adb/modules/zygisk_lsposed /data/adb/lspd 2>/dev/null; "
+        "ps -A 2>/dev/null | grep -c '[l]spd'"
+    )
+    return "zygisk_lsposed" in out or "/data/adb/lspd" in out
+
+
+def enable_lsposed_ui(client: "VMOSClient", pad_code: str, *, reboot: bool = True) -> bool:
+    """Best-effort headless enable of the LSposed framework via the Toolbox UI.
+
+    Requires Kitsune Magisk to be enabled first (LSposed depends on it). Toggles
+    the "Lsposed" switch (just below "Magisk (Mask)"), confirms the reminder
+    dialog and — because LSposed loads through Zygisk at boot — restarts the
+    instance so the framework activates.
+
+    .. note::
+       This only installs the LSposed **framework**. To actually spoof IMEI /
+       OAID / android_id you must additionally install and activate an Xposed
+       device-spoofing **module** (an APK) through the LSposed Manager — that
+       module is not shipped by VMOS and is outside this toolkit's scope.
+    """
+    shell = PadRootShell(client, pad_code)
+    if not magisk_ready(shell):
+        raise RuntimeError("Enable Kitsune Magisk first (LSposed depends on it).")
+    if lsposed_ready(shell):
+        return True
+    size = shell.sh("wm size")
+    try:
+        w, h = (int(x) for x in size.split(":")[-1].strip().split("x"))
+    except Exception:  # noqa: BLE001
+        w, h = 1440, 3120
+    shell.sh("am start -n com.android.expansiontools/com.android.tools.home.MainActivity")
+    time.sleep(4)
+    for _ in range(3):
+        client.touch.simulate_swipe(
+            [pad_code], direction="BOTTOM_TO_TOP",
+            start_x=w // 2, start_y=int(h * 0.78), end_x=w // 2, end_y=int(h * 0.22),
+            width=w, height=h,
+        )
+        time.sleep(2)
+    # "Lsposed" toggle sits one row below Magisk (~43% height on the scrolled view).
+    shell.sh(f"input tap {int(w * 0.86)} {int(h * 0.43)}")
+    time.sleep(2)
+    shell.sh(f"input tap {int(w * 0.67)} {int(h * 0.55)}")  # Confirm dialog
+    time.sleep(5)
+    if reboot:
+        try:
+            client.instance.restart(pad_codes=[pad_code])
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(90)
+        for _ in range(8):
+            if shell.sh("getprop sys.boot_completed").strip() == "1":
+                break
+            time.sleep(15)
+    return lsposed_ready(shell)

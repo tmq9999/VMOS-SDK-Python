@@ -73,6 +73,29 @@ remove_spoof + reboot → về Pixel 7 Pro / 13 / 33 ✅
 | SIM/vùng | `update_sim` + `set_proxy`/`smart_ip` | Nhà mạng + IP khớp quốc gia |
 | Framework | LSposed (toggle trong Toolbox) | IMEI/OAID/AndroidID sâu hơn |
 
+## Spoof sâu: IMEI / OAID / Android ID (đã test live)
+
+Kiểm chứng trực tiếp trên máy thật — ma trận thực tế:
+
+| Danh tính | Cơ chế | Kết quả |
+|---|---|---|
+| build.prop (model/brand/fingerprint/release/sdk) | `resetprop` (toolkit) | ✅ Đổi được, dính qua reboot |
+| **IMEI** | RIL/telephony framework giữ (không phải prop) | ❌ `resetprop` vô tác dụng; app đọc qua `service call iphonesubinfo` |
+| **OAID** | Không có prop/settings lever | ❌ Không đổi được qua shell |
+| **Android ID** | `settings put secure android_id` | ❌ **Bị VMOS bỏ qua** (test cả `--user 0`) |
+
+➡️ **IMEI/OAID/Android ID cần hook framework** — tức LSposed **+ một Xposed module spoof** (APK hook `TelephonyManager.getImei()`, OAID SDK, `Settings.Secure` ANDROID_ID).
+
+**LSposed (đã test):** bật qua Toolbox → Lsposed → ON (toolkit: `enable_lsposed_ui`). Sau reboot: daemon `lspd` chạy, module `zygisk_lsposed` load ✅ — **framework active**. NHƯNG VMOS **không kèm** module spoof và không có Manager UI dễ script → bước cài + kích hoạt Xposed module spoof nằm **ngoài phạm vi** toolkit (cần APK module cụ thể).
+
+```python
+from vmos.spoof import enable_lsposed_ui, lsposed_ready
+enable_lsposed_ui(client, "ACP...")   # bật framework LSposed (cần Magisk trước) + reboot
+# → sau đó cài Xposed spoof module qua LSposed Manager để hook IMEI/OAID/AndroidID
+```
+
+Giải pháp thay thế (không cần Xposed module): **IMEI/IMSI** đổi được (ngẫu nhiên) bằng `update_sim` / ADI template của VMOS; đủ cho đa dạng vùng/nhà mạng nhưng không chọn IMEI cụ thể.
+
 ## ⚠️ Giới hạn (set kỳ vọng với khách)
 - Chỉ spoof tầng phần mềm/`build.prop`. **Không** qua được hardware attestation (TEE key attestation, Play Integrity STRONG) — đó là chữ ký phần cứng thật.
 - `android_id` set qua `settings put secure android_id` là giá trị legacy; app hiện đại có thể dùng ID theo app/ký khác.

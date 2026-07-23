@@ -65,6 +65,29 @@ remove_spoof + reboot → back to Pixel 7 Pro / 13 / 33  OK
 | SIM/region | `update_sim` + `set_proxy`/`smart_ip` | Operator + IP matching the country |
 | Framework | LSposed (toggle in Toolbox) | Deeper IMEI/OAID/AndroidID hooks |
 
+## Deep identity: IMEI / OAID / Android ID (live-tested)
+
+Verified directly on a real device — the actual matrix:
+
+| Identity | Mechanism | Result |
+|---|---|---|
+| build.prop (model/brand/fingerprint/release/sdk) | `resetprop` (toolkit) | ✅ Changeable, persists across reboot |
+| **IMEI** | held by RIL/telephony framework (not a prop) | ❌ `resetprop` has no effect; apps read via `service call iphonesubinfo` |
+| **OAID** | no prop/settings lever | ❌ Not shell-changeable |
+| **Android ID** | `settings put secure android_id` | ❌ **Ignored on VMOS** (tested incl. `--user 0`) |
+
+➡️ **IMEI/OAID/Android ID require a framework hook** — i.e. LSposed **plus an Xposed spoofing module** (an APK hooking `TelephonyManager.getImei()`, the OAID SDK, `Settings.Secure` ANDROID_ID).
+
+**LSposed (tested):** enable via Toolbox → Lsposed → ON (toolkit: `enable_lsposed_ui`). After reboot the `lspd` daemon runs and the `zygisk_lsposed` module loads ✅ — **framework active**. However VMOS ships **no** spoofing module and no easily-scriptable Manager UI, so installing + activating an Xposed spoofing module is **out of scope** for this toolkit (needs a specific module APK).
+
+```python
+from vmos.spoof import enable_lsposed_ui, lsposed_ready
+enable_lsposed_ui(client, "ACP...")   # enable LSposed framework (Magisk required) + reboot
+# then install an Xposed spoofing module via the LSposed Manager to hook IMEI/OAID/AndroidID
+```
+
+Alternative without an Xposed module: **IMEI/IMSI** can be regenerated (randomly) via VMOS's `update_sim` / ADI template — enough for region/operator variety, but you can't pick a specific IMEI.
+
 ## ⚠️ Limits (set customer expectations)
 - Software/`build.prop`-level spoof only. Hardware-backed attestation (TEE key attestation, Play Integrity STRONG) cannot be spoofed by any software method.
 - `android_id` via `settings put secure android_id` is the legacy value; modern apps may use per-app/signed IDs.

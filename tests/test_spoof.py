@@ -90,6 +90,8 @@ def test_apply_profile_runs_expected_steps():
     client = FakePadClient(_reply)
     summary = apply_profile(client, "ACP1", PIXEL_10_PRO_A17, persist=True)
     assert summary["applied"] > 0 and summary["persisted"] is True
+    assert summary["android_id_attempted"] is False  # preset has no android_id
+    assert "android_id_note" in summary
     joined = "\n".join(client.scripts)
     assert "id -u" in joined
     assert f"{MAGISK_BIN} resetprop -n 'ro.product.model' 'Pixel 10 Pro'" in joined
