@@ -96,6 +96,20 @@ enable_lsposed_ui(client, "ACP...")   # bật framework LSposed (cần Magisk tr
 
 Giải pháp thay thế (không cần Xposed module): **IMEI/IMSI** đổi được (ngẫu nhiên) bằng `update_sim` / ADI template của VMOS; đủ cho đa dạng vùng/nhà mạng nhưng không chọn IMEI cụ thể.
 
+## Root hygiene / stealth (quan trọng cho reseller)
+
+Global root là dấu hiệu dễ bị phát hiện nhất (SafetyNet, app ngân hàng, anti-fraud đều check). **Giữ "Global Root" của VMOS TẮT** trên máy bán ra — và tắt nó **không mất gì** về vận hành (đã kiểm chứng live 2026-07):
+
+- Tắt global root (`client.instance.switch_root(pad_codes=[pad], global_root=True, root_status=0)` rồi reboot) → `persist.sys.device.root.global=0`, và gỡ `/system/xbin/su` + `/sbin/su`.
+- **Shell quản lý của VMOS vẫn root** bất kể flag — `async_cmd` chạy dưới daemon VMOS (`u:r:xu_daemon:s0`, `uid=0`), độc lập với su app-facing — nên `resetprop`, persona CLI và mọi spoof vẫn chạy headless.
+
+`/system/bin/su` còn lại khi **Kitsune Magisk** bật (Magisk cấp systemless su, mà bạn cần Magisk để spoof). Đừng gỡ Magisk để ẩn nó — dùng **Zygisk DenyList** của Magisk để ẩn root khỏi app đích (mặc định đang tắt). Tư thế khuyến nghị:
+
+1. **Global Root: TẮT** (chỉ bật cho thao tác nhất thời rồi tắt lại).
+2. **Magisk DenyList: BẬT** + thêm các app không được thấy root.
+3. **LSPosed**: chỉ scope module vào app đích cụ thể, không lộ rộng.
+4. Quản trị/spoof qua **shell API (root sẵn)** — không bao giờ để global su bật.
+
 ## ⚠️ Giới hạn (set kỳ vọng với khách)
 - Chỉ spoof tầng phần mềm/`build.prop`. **Không** qua được hardware attestation (TEE key attestation, Play Integrity STRONG) — đó là chữ ký phần cứng thật.
 - `android_id` set qua `settings put secure android_id` là giá trị legacy; app hiện đại có thể dùng ID theo app/ký khác.

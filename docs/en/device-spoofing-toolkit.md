@@ -88,6 +88,29 @@ enable_lsposed_ui(client, "ACP...")   # enable LSposed framework (Magisk require
 
 Alternative without an Xposed module: **IMEI/IMSI** can be regenerated (randomly) via VMOS's `update_sim` / ADI template — enough for region/operator variety, but you can't pick a specific IMEI.
 
+## Root hygiene / stealth (important for resellers)
+
+Global root is the single most detectable signal (SafetyNet, banking, anti-fraud
+apps all check for it). **Keep VMOS "Global Root" OFF** on shipped devices — and
+it costs you nothing operationally (live-verified 2026-07):
+
+- Turning global root off (`client.instance.switch_root(pad_codes=[pad],
+  global_root=True, root_status=0)`, then reboot) sets
+  `persist.sys.device.root.global=0` and removes `/system/xbin/su` + `/sbin/su`.
+- The **VMOS management shell stays root regardless** — `async_cmd` runs as the
+  VMOS daemon (`u:r:xu_daemon:s0`, `uid=0`), independent of the app-facing su
+  flag — so `resetprop`, the persona CLI, and all spoofing still work headlessly.
+
+`/system/bin/su` remains while **Kitsune Magisk** is enabled (Magisk provides a
+systemless su, and you need Magisk for spoofing). Don't uninstall Magisk to hide
+it — use Magisk's **Zygisk DenyList** to hide root from your target apps instead
+(it's off by default). Recommended posture:
+
+1. **Global Root: OFF** (enable only for a one-off op, then turn back off).
+2. **Magisk DenyList: ON** + add the apps that must not see root.
+3. **LSPosed**: scope modules only to the specific target apps, never broadly.
+4. Administer/spoof through the **root API shell** — never leave global su on.
+
 ## ⚠️ Limits (set customer expectations)
 - Software/`build.prop`-level spoof only. Hardware-backed attestation (TEE key attestation, Play Integrity STRONG) cannot be spoofed by any software method.
 - `android_id` via `settings put secure android_id` is the legacy value; modern apps may use per-app/signed IDs.
