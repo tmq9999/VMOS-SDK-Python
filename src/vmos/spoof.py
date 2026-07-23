@@ -50,6 +50,10 @@ __all__ = [
     "lsposed_ready",
     "enable_lsposed_ui",
     "scope_lsposed_module",
+    "set_identity_props",
+    "load_xpose_plugin",
+    "list_xpose_plugins",
+    "remove_xpose_plugin",
     "PIXEL_10_PRO_A17",
     "PIXEL_10_A17",
     "PIXEL_10_PRO_XL_A17",
@@ -67,12 +71,20 @@ __all__ = [
 #      devices (verified, incl. --user 0). apply_profile still attempts it (works
 #      on some virtual images) but verify_profile will report the truth.
 #
-# Deep IMEI / OAID / android_id spoofing therefore requires a framework hook:
-# enable LSposed (enable_lsposed_ui) AND install an Xposed device-spoofing
-# module (an APK that hooks TelephonyManager.getImei(), the OAID SDK, and
-# Settings.Secure ANDROID_ID). VMOS's Kitsune ships the LSposed *framework*
-# (Zygisk module `zygisk_lsposed`, `lspd` daemon) but no spoofing module and no
-# readily-scriptable Manager UI, so that module step is out of scope here.
+# Deep IMEI / IMSI / ICCID / android_id spoofing therefore requires a framework
+# hook — an APK that hooks TelephonyManager.getImei()/getSubscriberId()/... and
+# Settings.Secure ANDROID_ID inside the target app. Two supported paths:
+#
+#   1. PRIVATE XPose plugin (recommended) — VMOS ships its native XPose
+#      framework in-image (`/system/bin/apmt`, confirmed working), so a plugin
+#      built against its API is ALWAYS compatible and fully private. Build the
+#      plugin in `xpose_plugin/`, then load it headlessly with
+#      `load_xpose_plugin()` + `set_identity_props()` (below). See
+#      docs/en/xpose-custom-hook.md.
+#   2. LSposed module — enable the framework (enable_lsposed_ui), install a
+#      spoof module APK, and scope it (scope_lsposed_module). The framework
+#      bundled with VMOS's Kitsune is OLD (libxposed API mismatch), so a fresh
+#      LSPosed manager must replace it first; the private XPose path avoids this.
 # ---------------------------------------------------------------------------
 
 #: Kitsune Magisk main binary on VMOS real devices (exposes the ``resetprop`` applet).
@@ -447,6 +459,89 @@ def scope_lsposed_module(
     modules = shell.sh(f'{sqlite3_bin} "{db_path}" "SELECT module_pkg_name,enabled FROM modules;"')
     scope = shell.sh(f'{sqlite3_bin} "{db_path}" "SELECT app_pkg_name FROM scope;"')
     return {"module": module_pkg, "enabled": enabled, "modules": modules, "scope": scope}
+
+
+#: system properties the XPose spoof plugin reads (see xpose_plugin/).
+_IDENTITY_PROPS = {
+    "imei": "persist.vmos.spoof.imei",
+    "meid": "persist.vmos.spoof.meid",
+    "imsi": "persist.vmos.spoof.imsi",
+    "iccid": "persist.vmos.spoof.iccid",
+    "line1": "persist.vmos.spoof.line1",
+    "android_id": "persist.vmos.spoof.androidid",
+}
+
+
+def set_identity_props(
+    client: "VMOSClient",
+    pad_code: str,
+    *,
+    imei: Optional[str] = None,
+    meid: Optional[str] = None,
+    imsi: Optional[str] = None,
+    iccid: Optional[str] = None,
+    line1: Optional[str] = None,
+    android_id: Optional[str] = None,
+    persist_module: bool = True,
+) -> Dict[str, str]:
+    """Set the ``persist.vmos.spoof.*`` props the XPose spoof plugin reads.
+
+    These decouple the (build-once) XPose plugin from per-device values: the
+    plugin returns them for ``getImei()`` / ``getSubscriberId()`` /
+    ``Settings.Secure`` etc. in scoped apps. Applied immediately via Magisk
+    ``resetprop``; when ``persist_module`` is true they're also appended to the
+    ``vmos_spoof`` Magisk module's ``custom.conf`` so they survive reboots.
+
+    Only the arguments you pass are set. Returns the ``prop -> value`` map written.
+    """
+    shell = PadRootShell(client, pad_code)
+    values = {"imei": imei, "meid": meid, "imsi": imsi, "iccid": iccid,
+              "line1": line1, "android_id": android_id}
+    to_set = {_IDENTITY_PROPS[k]: v for k, v in values.items() if v}
+    if not to_set:
+        return {}
+    shell.sh(" ; ".join(f"{MAGISK_BIN} resetprop -n {_sh_quote(k)} {_sh_quote(v)}" for k, v in to_set.items()))
+    if persist_module:
+        lines = "".join(f"ENABLED,{k},{v}\\n" for k, v in to_set.items())
+        conf = f"{_MODULE_DIR}/config/custom.conf"
+        shell.sh(f"mkdir -p {_MODULE_DIR}/config 2>/dev/null; "
+                 f"printf 'FILE_ENABLED\\n{lines}' >> {_sh_quote(conf)} 2>/dev/null || true")
+    return to_set
+
+
+def load_xpose_plugin(
+    client: "VMOSClient",
+    pad_code: str,
+    *,
+    name: str,
+    target_pkg: str,
+    apk_url: Optional[str] = None,
+    apk_path: Optional[str] = None,
+) -> str:
+    """Load an XPose hook plugin into ``target_pkg`` via VMOS's native ``apmt``.
+
+    Provide exactly one of ``apk_url`` (``apmt ... -u``) or ``apk_path``
+    (``apmt ... -f``). Use ``target_pkg="android"`` to hook SystemServer.
+    Restart the target app afterwards. Returns ``apmt``'s output.
+
+    No LSPosed needed — ``apmt`` is built into the VMOS image. Build the plugin
+    from ``xpose_plugin/`` (see its README).
+    """
+    if bool(apk_url) == bool(apk_path):
+        raise ValueError("provide exactly one of apk_url or apk_path")
+    shell = PadRootShell(client, pad_code)
+    src = f"-u {_sh_quote(apk_url)}" if apk_url else f"-f {_sh_quote(apk_path)}"
+    return shell.sh(f"apmt patch add -n {_sh_quote(name)} -p {_sh_quote(target_pkg)} {src}")
+
+
+def list_xpose_plugins(client: "VMOSClient", pad_code: str) -> str:
+    """Return ``apmt patch list`` output (loaded XPose plugins)."""
+    return PadRootShell(client, pad_code).sh("apmt patch list")
+
+
+def remove_xpose_plugin(client: "VMOSClient", pad_code: str, name: str) -> str:
+    """Remove an XPose plugin by name (``apmt patch del -n <name>``)."""
+    return PadRootShell(client, pad_code).sh(f"apmt patch del -n {_sh_quote(name)}")
 
 
 def lsposed_ready(shell: "PadRootShell") -> bool:

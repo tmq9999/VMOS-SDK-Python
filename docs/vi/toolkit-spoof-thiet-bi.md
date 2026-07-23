@@ -90,17 +90,21 @@ Kiểm chứng trực tiếp trên máy thật — ma trận thực tế:
 | **OAID** | Không có prop/settings lever | ❌ Không đổi được qua shell |
 | **Android ID** | `settings put secure android_id` | ❌ **Bị VMOS bỏ qua** (test cả `--user 0`) |
 
-➡️ **IMEI/OAID/Android ID cần hook framework** — tức LSposed **+ một Xposed module spoof** (APK hook `TelephonyManager.getImei()`, OAID SDK, `Settings.Secure` ANDROID_ID).
+➡️ **IMEI/OAID/Android ID cần hook framework** — một APK hook `TelephonyManager.getImei()`/`getSubscriberId()`/… và `Settings.Secure` ANDROID_ID **bên trong app đích**. Có 2 đường được hỗ trợ:
 
-**LSposed (đã test):** bật qua Toolbox → Lsposed → ON (toolkit: `enable_lsposed_ui`). Sau reboot: daemon `lspd` chạy, module `zygisk_lsposed` load ✅ — **framework active**. NHƯNG VMOS **không kèm** module spoof và không có Manager UI dễ script → bước cài + kích hoạt Xposed module spoof nằm **ngoài phạm vi** toolkit (cần APK module cụ thể).
+**Đường 1 — Plugin XPose riêng (khuyến nghị).** VMOS có sẵn **XPose framework native** trong image (`/system/bin/apmt`, đã xác nhận chạy), nên plugin build theo API của nó **luôn tương thích** và hoàn toàn **riêng tư**. Build 1 lần từ [`xpose_plugin/`](../../xpose_plugin), rồi nạp headless:
 
 ```python
-from vmos.spoof import enable_lsposed_ui, lsposed_ready
-enable_lsposed_ui(client, "ACP...")   # bật framework LSposed (cần Magisk trước) + reboot
-# → sau đó cài Xposed spoof module qua LSposed Manager để hook IMEI/OAID/AndroidID
+from vmos.spoof import set_identity_props, load_xpose_plugin
+set_identity_props(client, "ACP...", imei="356789012345678", android_id="a1b2c3d4e5f60718")
+load_xpose_plugin(client, "ACP...", name="vmosid",
+                  target_pkg="com.example.targetapp", apk_url="https://your-host/plugin.apk")
 ```
+Hướng dẫn đầy đủ: [xpose-custom-hook-vi.md](xpose-custom-hook-vi.md).
 
-Giải pháp thay thế (không cần Xposed module): **IMEI/IMSI** đổi được (ngẫu nhiên) bằng `update_sim` / ADI template của VMOS; đủ cho đa dạng vùng/nhà mạng nhưng không chọn IMEI cụ thể.
+**Đường 2 — Module LSposed.** Bật qua Toolbox → Lsposed → ON (`enable_lsposed_ui`); sau reboot daemon `lspd` chạy, `zygisk_lsposed` load ✅. **NHƯNG** framework kèm trong Kitsune của VMOS là bản **cũ** (module mới lệch API libxposed, `NoSuchMethodException`), nên phải thay bằng bản LSPosed manager mới trước, rồi scope module bằng `scope_lsposed_module()`. Đường 1 tránh hoàn toàn vấn đề này.
+
+Giải pháp đơn giản nhất (không cần hook): **IMEI/IMSI** đổi được (ngẫu nhiên) bằng `update_sim` / ADI template của VMOS; đủ cho đa dạng vùng/nhà mạng nhưng không chọn IMEI cụ thể.
 
 ## Root hygiene / stealth (quan trọng cho reseller)
 

@@ -126,3 +126,29 @@ def test_scope_lsposed_module_builds_sql():
     assert "INSERT OR IGNORE INTO scope" in joined
     assert "'android'" in joined and "'com.android.vending'" in joined
     assert out["module"] == "com.devicespooflab.hooks" and out["enabled"] is True
+
+
+def test_set_identity_props_uses_resetprop():
+    from vmos.spoof import set_identity_props
+    client = FakePadClient(lambda s: "")
+    out = set_identity_props(client, "ACP1", imei="356789012345678", android_id="a1b2c3d4e5f60718")
+    joined = "\n".join(client.scripts)
+    assert "persist.vmos.spoof.imei" in joined and "356789012345678" in joined
+    assert "persist.vmos.spoof.androidid" in joined
+    assert out["persist.vmos.spoof.imei"] == "356789012345678"
+
+
+def test_load_xpose_plugin_builds_apmt():
+    from vmos.spoof import load_xpose_plugin
+    client = FakePadClient(lambda s: "add Patch:vmosid success")
+    load_xpose_plugin(client, "ACP1", name="vmosid", target_pkg="com.x", apk_url="https://h/p.apk")
+    joined = "\n".join(client.scripts)
+    assert "apmt patch add -n 'vmosid' -p 'com.x' -u 'https://h/p.apk'" in joined
+
+
+def test_load_xpose_plugin_requires_one_source():
+    import pytest
+    from vmos.spoof import load_xpose_plugin
+    client = FakePadClient(lambda s: "")
+    with pytest.raises(ValueError):
+        load_xpose_plugin(client, "ACP1", name="n", target_pkg="p")  # neither url nor path

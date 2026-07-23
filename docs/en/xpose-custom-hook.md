@@ -1,0 +1,103 @@
+# Private XPose hook — spoof IMEI / IMSI / ICCID / ANDROID_ID (`apmt`)
+
+> Write your **own** framework hook against VMOS's **native XPose framework** —
+> no LSPosed, no third-party module. This reaches the identity layer that
+> `resetprop` alone cannot: the Java getters an app calls for IMEI / IMSI /
+> ICCID / phone number / ANDROID_ID. Tiếng Việt: [xpose-custom-hook-vi.md](../vi/xpose-custom-hook-vi.md).
+
+Project source lives in [`xpose_plugin/`](../../xpose_plugin) of this repo.
+
+## Why a private XPose plugin (not an LSPosed module)
+
+| | Private XPose plugin (`apmt`) | LSPosed module |
+|---|---|---|
+| Framework | VMOS **ships XPose in-image** (`/system/bin/apmt`, confirmed working) | Bundled `zygisk_lsposed` is **old**; new modules hit a libxposed API mismatch (`NoSuchMethodException`) |
+| Compatibility | **Always compatible** — built against the image's own API | Must match the manager/module ABI; VMOS's bundled one lags |
+| Privacy | **Your** APK, no known module signature | Well-known package/signature, easy to fingerprint |
+| Fit | Hooks **exactly** the methods you choose | Whatever the third-party module decided |
+
+This is the path to pick when you want IMEI/IMSI/ICCID/ANDROID_ID spoofing that
+is private, tailored, and won't break on the next VMOS image.
+
+## Confirmed framework facts (live on the test pad, 2026-07)
+
+- `/system/bin/apmt` exists and runs: `apmt patch add|list|del`.
+- Plugin = an APK whose entry class is `androidx.app.Entry` with:
+  - `public static void appMain(ClassLoader loader, Context context, String appClass, String pkg, String process)` — runs **inside the target app** process.
+  - `public static void systemMain(ClassLoader loader, String pkg, String processName)` — runs in **SystemServer** (`-p android`).
+- API library: `net.armcloud.xscore:xscore:1.0.0`
+  - `com.android.core.XSHelpers` — `findAndHookMethod(Class, "method", paramTypes…, XC_MethodHook)`
+  - `com.android.core.XC_MethodHook` — `beforeHookedMethod` / `afterHookedMethod`, `param.setResult(...)`
+  - `com.android.core.XSBridge`
+
+## Design: build once, configure per device
+
+The plugin **hard-codes nothing**. At hook time it reads spoof values from
+`persist.vmos.spoof.*` system properties, so one APK serves every instance —
+set values headlessly per device with Magisk `resetprop`. An empty/unset
+property means "leave the real value untouched", so you spoof only what you need.
+
+| Property | Overrides (in scoped app) |
+|---|---|
+| `persist.vmos.spoof.imei` | `TelephonyManager.getImei()` / `getDeviceId()` (+ per-slot) |
+| `persist.vmos.spoof.meid` | `getMeid()` |
+| `persist.vmos.spoof.imsi` | `getSubscriberId()` |
+| `persist.vmos.spoof.iccid` | `getSimSerialNumber()` |
+| `persist.vmos.spoof.line1` | `getLine1Number()` |
+| `persist.vmos.spoof.androidid` | `Settings.Secure.getString(…, "android_id")` |
+
+## Deploy headless (VMOS SDK)
+
+```python
+from vmos import VMOSClient
+from vmos.spoof import set_identity_props, load_xpose_plugin, list_xpose_plugins
+
+with VMOSClient() as c:
+    # 1) push the per-device identity values (resetprop + persist in Magisk module)
+    set_identity_props(c, "ACP...",
+                       imei="356789012345678", imsi="460110000000000",
+                       iccid="8986000000000000000", android_id="a1b2c3d4e5f60718")
+
+    # 2) load the plugin into the target app via apmt (build once, host the APK anywhere)
+    load_xpose_plugin(c, "ACP...", name="vmosid",
+                      target_pkg="com.example.targetapp",
+                      apk_url="https://your-host/vmos-xpose-spoof.apk")
+
+    print(list_xpose_plugins(c, "ACP..."))   # verify it's loaded
+    # 3) restart the target app — it now reads the spoofed identity
+```
+
+Raw device equivalent (root shell):
+
+```sh
+apmt patch add -n vmosid -p com.example.targetapp -u https://your-host/plugin.apk
+apmt patch list
+apmt patch del -n vmosid
+```
+
+Helpers: `set_identity_props`, `load_xpose_plugin`, `list_xpose_plugins`,
+`remove_xpose_plugin` (all in `vmos.spoof`).
+
+## Build the APK
+
+Not buildable inside the VMOS shell — use a normal Android toolchain (Android
+Studio, or `gradle :app:assembleRelease` with Android SDK + JDK 17). If the
+`net.armcloud.xscore` artifact isn't on public Maven, take it from the official
+demo (`ArmCloudXposed.zip`) or drop a compile-time **stub** jar exposing
+`com.android.core.{XSHelpers, XC_MethodHook, XSBridge}` into `app/libs/` — the
+real classes are provided by the framework at runtime; the stub only satisfies
+`javac`. Full steps: [`xpose_plugin/README.md`](../../xpose_plugin/README.md).
+
+## Verify with the CORRECT oracle
+
+XPose/LSPosed hooks live in the **app process**. So verify from a **scoped app**
+that calls `TelephonyManager.getImei()` (e.g. a device-info APK added as the `-p`
+target). Do **not** use `service call iphonesubinfo` or shell `getprop` — those
+bypass the Java hook and will show the real value even when the spoof works.
+
+## Scope & ethics
+
+Software/Java-layer spoof only. Hardware-backed attestation (TEE key
+attestation, Play Integrity STRONG) is out of reach of any software method. Use
+for legitimate device-variety reselling and comply with VMOS's ToS and the
+target apps' terms.

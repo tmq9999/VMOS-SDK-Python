@@ -83,17 +83,21 @@ Verified directly on a real device — the actual matrix:
 | **OAID** | no prop/settings lever | ❌ Not shell-changeable |
 | **Android ID** | `settings put secure android_id` | ❌ **Ignored on VMOS** (tested incl. `--user 0`) |
 
-➡️ **IMEI/OAID/Android ID require a framework hook** — i.e. LSposed **plus an Xposed spoofing module** (an APK hooking `TelephonyManager.getImei()`, the OAID SDK, `Settings.Secure` ANDROID_ID).
+➡️ **IMEI/OAID/Android ID require a framework hook** — an APK that hooks `TelephonyManager.getImei()`/`getSubscriberId()`/… and `Settings.Secure` ANDROID_ID inside the target app. Two supported paths:
 
-**LSposed (tested):** enable via Toolbox → Lsposed → ON (toolkit: `enable_lsposed_ui`). After reboot the `lspd` daemon runs and the `zygisk_lsposed` module loads ✅ — **framework active**. However VMOS ships **no** spoofing module and no easily-scriptable Manager UI, so installing + activating an Xposed spoofing module is **out of scope** for this toolkit (needs a specific module APK).
+**Path 1 — Private XPose plugin (recommended).** VMOS ships its **native XPose framework** in-image (`/system/bin/apmt`, confirmed working), so a plugin built against its API is **always compatible** and fully **private**. Build once from [`xpose_plugin/`](../../xpose_plugin), then load headlessly:
 
 ```python
-from vmos.spoof import enable_lsposed_ui, lsposed_ready
-enable_lsposed_ui(client, "ACP...")   # enable LSposed framework (Magisk required) + reboot
-# then install an Xposed spoofing module via the LSposed Manager to hook IMEI/OAID/AndroidID
+from vmos.spoof import set_identity_props, load_xpose_plugin
+set_identity_props(client, "ACP...", imei="356789012345678", android_id="a1b2c3d4e5f60718")
+load_xpose_plugin(client, "ACP...", name="vmosid",
+                  target_pkg="com.example.targetapp", apk_url="https://your-host/plugin.apk")
 ```
+Full guide: [xpose-custom-hook.md](xpose-custom-hook.md).
 
-Alternative without an Xposed module: **IMEI/IMSI** can be regenerated (randomly) via VMOS's `update_sim` / ADI template — enough for region/operator variety, but you can't pick a specific IMEI.
+**Path 2 — LSposed module.** Enable via Toolbox → Lsposed → ON (`enable_lsposed_ui`); after reboot the `lspd` daemon runs and `zygisk_lsposed` loads ✅. **But** the framework bundled with VMOS's Kitsune is **old** (new modules hit a libxposed API mismatch, `NoSuchMethodException`), so a fresh LSPosed manager APK must replace it first, then scope the module with `scope_lsposed_module()`. Path 1 avoids this entirely.
+
+Simplest alternative (no hook): **IMEI/IMSI** can be regenerated (randomly) via VMOS's `update_sim` / ADI template — enough for region/operator variety, but you can't pick a specific IMEI.
 
 ## Root hygiene / stealth (important for resellers)
 
