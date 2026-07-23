@@ -61,6 +61,10 @@ public class Entry {
         if (process != null && process.contains("sandboxed_process")) return; // skip webview procs
         Log.d(TAG, "appMain pkg=" + pkg + " process=" + process);
         try {
+            // Allow reflective reads of the hidden android.os.SystemProperties on Android 9+.
+            org.lsposed.hiddenapibypass.HiddenApiBypass.addHiddenApiExemptions("Landroid/os/SystemProperties;");
+        } catch (Throwable ignored) { /* class absent / older API — plain reflection still works */ }
+        try {
             hookTelephony(loader);
         } catch (Throwable t) {
             Log.e(TAG, "hookTelephony failed: " + Log.getStackTraceString(t));

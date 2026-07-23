@@ -9,4 +9,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "vmos-xpose-spoof"
-include(":app")
+include(":app", ":xscore-stub")

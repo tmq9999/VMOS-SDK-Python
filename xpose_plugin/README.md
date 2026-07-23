@@ -43,17 +43,17 @@ APK is safe to load anywhere.
 
 ## Build (needs a normal Android toolchain — not buildable inside the VMOS shell)
 
+Full step-by-step: **[BUILD.md](BUILD.md)**. In short — the `com.android.core.*`
+XPose API is provided in-repo as a compile-only stub (`xscore-stub/`), so you do
+**not** need the real `net.armcloud.xscore` artifact to compile:
+
 ```bash
-# Android Studio: open this folder and Build > APK, or CLI with Android SDK + JDK 17:
+# Android Studio: open this folder → Build > APK. Or CLI (JDK 17 + Android SDK):
 gradle :app:assembleRelease        # → app/build/outputs/apk/release/app-release.apk
 ```
-If the `net.armcloud.xscore:xscore:1.0.0` artifact isn't reachable from public
-Maven, get it from the official demo (`ArmCloudXposed.zip` → its module depends
-on the same lib) or drop a compile-time **stub** jar exposing
-`com.android.core.{XSHelpers, XC_MethodHook, XSBridge}` into `app/libs/` and
-switch the dependency to `compileOnly(files("libs/xscore-stub.jar"))`. The real
-classes are provided by the framework at runtime; the stub only satisfies
-`javac`.
+The release APK is debug-signed (see `app/build.gradle.kts`) so it loads without
+extra steps. The stub classes are never packaged — the framework supplies the
+real ones at runtime.
 
 ## Deploy (headless, via the VMOS SDK / root shell)
 
