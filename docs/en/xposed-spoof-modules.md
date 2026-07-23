@@ -102,6 +102,58 @@ WAL transfer + checkpoint, or (c) one-time enable+scope in the **LSPosed Manager
 UI** (which can be UI-automated with `simulate_click`). Build-prop + Android-ID
 spoofing above needs neither.
 
+## Live test — headless LSPosed scoping via SQLite (2026-07)
+
+Completed the headless scope automation the user asked for, and found the real
+blocker:
+
+**sqlite3 on device (the pad has no `sqlite3`, and `async_cmd` stdout is capped
+at ~2 KB so the WAL can't be pulled):** `curl` a **static aarch64 sqlite3**
+binary straight onto the pad (verified by sha256), e.g.
+`bnsmb/binaries-for-Android/binaries/sqlite3.static` (ELF64 AArch64, runs on
+Android 13) → `/data/local/tmp/sqlite3`.
+
+**LSPosed config schema** (`/data/adb/lspd/config/modules_config.db`):
+```sql
+modules(mid INTEGER PK, module_pkg_name TEXT UNIQUE, apk_path TEXT, enabled 0/1, auto_include 0/1)
+scope(mid, app_pkg_name, user_id)
+```
+LSPosed auto-adds a **disabled** `modules` row when it detects an installed
+module APK. Enable + scope headlessly (then reboot) — wrapped as
+`vmos.spoof.scope_lsposed_module(...)`:
+```sql
+UPDATE modules SET enabled=1, auto_include=1 WHERE module_pkg_name='com.devicespooflab.hooks';
+INSERT OR IGNORE INTO scope(mid,app_pkg_name,user_id)
+  VALUES((SELECT mid FROM modules WHERE module_pkg_name='com.devicespooflab.hooks'),'android',0), … ;
+```
+✅ The edit **persists across reboot** and LSPosed **loads the module into
+scoped processes** — confirmed in the LSPosed log:
+`I/LSPosed Loading xposed for com.android.vending/10034`.
+
+**🚧 Root blocker — module/framework API mismatch:** DeviceSpoofLab-Hooks v1.2
+targets the **new libxposed API** (`io.github.libxposed.api`), but VMOS's
+bundled LSPosed (`zygisk_lsposed`) is **older** and can't instantiate it:
+```
+E/LSPosedContext Failed to load class com.devicespooflab.hooks.XposedModuleImpl
+java.lang.NoSuchMethodException: XposedModuleImpl.<init>[XposedInterface, ModuleLoadedParam]
+```
+So the hooks never initialise → IMEI/GAID/Android-ID are **not** changed by this
+module on VMOS's current LSPosed. Scope automation is correct; the module is
+simply incompatible with the shipped framework.
+
+**Also note:** `service call iphonesubinfo` / shell `getprop` are **not** valid
+oracles for LSPosed hooks anyway — those hooks live in the **app-side Java layer**
+(`TelephonyManager.getImei()`, `Settings.Secure`, `Build.*`), while `service
+call` hits the telephony binder service directly. Verify with a **scoped test
+app**, not the shell.
+
+**➡️ Recommendation:** on VMOS's bundled LSPosed, prefer a module built for the
+**classic Xposed API** (`de.robv.android.xposed`) — e.g. **AndroidFaker** — which
+matches the older framework, instead of new-libxposed modules. (Or replace the
+`zygisk_lsposed` module with a newer LSPosed build — heavier/riskier.) The
+**Magisk-layer** spoofing (build props + Android ID via SSAID, above) needs no
+LSPosed and already works end-to-end.
+
 ## ⚠️ Caveats
 
 - **Detection**: all Java-level hooks can be detected by hardened apps

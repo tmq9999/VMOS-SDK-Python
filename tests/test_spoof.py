@@ -113,3 +113,16 @@ def test_apply_requires_root():
     client = FakePadClient(lambda s: "2000" if s.strip() == "id -u" else "")
     with pytest.raises(RuntimeError):
         apply_profile(client, "ACP1", PIXEL_10_PRO_A17)
+
+
+def test_scope_lsposed_module_builds_sql():
+    from vmos.spoof import scope_lsposed_module
+    client = FakePadClient(lambda s: "")
+    out = scope_lsposed_module(client, "ACP1", "com.devicespooflab.hooks",
+                               ["android", "com.android.vending"])
+    joined = "\n".join(client.scripts)
+    assert "UPDATE modules SET enabled=1" in joined
+    assert "com.devicespooflab.hooks" in joined
+    assert "INSERT OR IGNORE INTO scope" in joined
+    assert "'android'" in joined and "'com.android.vending'" in joined
+    assert out["module"] == "com.devicespooflab.hooks" and out["enabled"] is True

@@ -49,6 +49,7 @@ __all__ = [
     "enable_magisk_ui",
     "lsposed_ready",
     "enable_lsposed_ui",
+    "scope_lsposed_module",
     "PIXEL_10_PRO_A17",
 ]
 
@@ -378,6 +379,54 @@ def enable_magisk_ui(client: "VMOSClient", pad_code: str, *, settle: float = 30.
     shell.sh(f"input tap {int(w * 0.67)} {int(h * 0.557)}")
     time.sleep(settle)
     return magisk_ready(shell)
+
+
+def scope_lsposed_module(
+    client: "VMOSClient",
+    pad_code: str,
+    module_pkg: str,
+    scope_pkgs: "List[str]",
+    *,
+    sqlite3_bin: str = "/data/local/tmp/sqlite3",
+    db_path: str = "/data/adb/lspd/config/modules_config.db",
+    enabled: bool = True,
+    user_id: int = 0,
+) -> Dict[str, Any]:
+    """Enable + scope an LSPosed module by editing ``modules_config.db`` directly.
+
+    LSPosed has no CLI; scope lives in a SQLite DB (``modules`` + ``scope``
+    tables) that is root-owned. Android ships no ``sqlite3``, so provide a
+    **static aarch64 ``sqlite3`` binary** on the device at ``sqlite3_bin`` first
+    (e.g. ``curl`` a prebuilt static build onto the pad and ``chmod 755`` — the
+    async shell is root and the pad has ``curl``). The module must already be
+    installed (LSPosed auto-adds a disabled row to ``modules`` when it detects
+    the APK). Reboot after this call for the change to take effect.
+
+    Returns the post-edit ``modules``/``scope`` dump.
+
+    .. important::
+       **Live finding (VMOS Kitsune):** enabling + scoping works and LSPosed
+       *loads* the module into scoped processes, BUT modules built against the
+       **new libxposed API** (e.g. DeviceSpoofLab-Hooks) fail to initialise on
+       VMOS's **older bundled LSPosed** (``NoSuchMethodException`` on
+       ``XposedModuleImpl.<init>``). Use a module built for the classic Xposed
+       API (``de.robv.android.xposed`` — e.g. AndroidFaker) to match the shipped
+       framework, or upgrade the ``zygisk_lsposed`` module.
+    """
+    shell = PadRootShell(client, pad_code)
+    q = "'"
+    en = 1 if enabled else 0
+    stmts = [f"UPDATE modules SET enabled={en}, auto_include={en} WHERE module_pkg_name={q}{module_pkg}{q};"]
+    for pkg in scope_pkgs:
+        stmts.append(
+            f"INSERT OR IGNORE INTO scope(mid,app_pkg_name,user_id) "
+            f"VALUES((SELECT mid FROM modules WHERE module_pkg_name={q}{module_pkg}{q}),{q}{pkg}{q},{user_id});"
+        )
+    sql = "".join(stmts)
+    shell.sh(f'{sqlite3_bin} "{db_path}" "{sql}"')
+    modules = shell.sh(f'{sqlite3_bin} "{db_path}" "SELECT module_pkg_name,enabled FROM modules;"')
+    scope = shell.sh(f'{sqlite3_bin} "{db_path}" "SELECT app_pkg_name FROM scope;"')
+    return {"module": module_pkg, "enabled": enabled, "modules": modules, "scope": scope}
 
 
 def lsposed_ready(shell: "PadRootShell") -> bool:

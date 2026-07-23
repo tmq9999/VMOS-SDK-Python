@@ -62,6 +62,36 @@ Config là CSV thuần trong `config/*.conf` (`ENABLED,prop,value`, generator `$
 
 **IMEI / GAID (APK LSPosed) — chưa xong headless:** APK `com.devicespooflab.hooks` cài được, nhưng hook IMEI/GAID cần module **enabled + scoped** trong LSPosed. LSPosed lưu ở `/data/adb/lspd/config/modules_config.db` (root:root 600, context `u:object_r:system_file:s0`) — **root sửa được** NHƯNG pad **không có `sqlite3`** và DB dùng WAL (`modules_config.db-wal` ~120KB) quá lớn để pull qua kênh base64 của `async_cmd`. Nên muốn script scope cần: (a) đẩy binary `sqlite3` tĩnh lên pad để sửa on-device, (b) chuyển WAL theo chunk + checkpoint, hoặc (c) enable+scope 1 lần qua **LSPosed Manager UI** (có thể UI-automation bằng `simulate_click`). Phần build-prop + Android-ID ở trên KHÔNG cần bước này.
 
+## Test thực tế — scope LSPosed headless qua SQLite (2026-07)
+
+Đã hoàn tất phần scope automation headless bạn yêu cầu, và tìm ra blocker thật:
+
+**sqlite3 trên máy** (pad không có `sqlite3`, và stdout `async_cmd` bị cắt ~2KB nên không pull được WAL): `curl` thẳng binary **sqlite3 static aarch64** lên pad (verify sha256), vd `bnsmb/binaries-for-Android/binaries/sqlite3.static` (ELF64 AArch64, chạy Android 13) → `/data/local/tmp/sqlite3`.
+
+**Schema LSPosed** (`/data/adb/lspd/config/modules_config.db`):
+```sql
+modules(mid PK, module_pkg_name UNIQUE, apk_path, enabled 0/1, auto_include 0/1)
+scope(mid, app_pkg_name, user_id)
+```
+LSPosed tự thêm 1 row `modules` (disabled) khi phát hiện APK module. Enable + scope headless (rồi reboot) — đóng gói thành `vmos.spoof.scope_lsposed_module(...)`:
+```sql
+UPDATE modules SET enabled=1, auto_include=1 WHERE module_pkg_name='com.devicespooflab.hooks';
+INSERT OR IGNORE INTO scope(mid,app_pkg_name,user_id)
+  VALUES((SELECT mid FROM modules WHERE module_pkg_name='com.devicespooflab.hooks'),'android',0), … ;
+```
+✅ Edit **giữ qua reboot** và LSPosed **load module vào tiến trình scoped** — xác nhận trong log: `I/LSPosed Loading xposed for com.android.vending/10034`.
+
+**🚧 Blocker gốc — lệch API module/framework:** DeviceSpoofLab-Hooks v1.2 dùng **libxposed API MỚI** (`io.github.libxposed.api`), nhưng LSPosed bundled của VMOS (`zygisk_lsposed`) là bản **CŨ**, không khởi tạo được:
+```
+E/LSPosedContext Failed to load class com.devicespooflab.hooks.XposedModuleImpl
+java.lang.NoSuchMethodException: XposedModuleImpl.<init>[XposedInterface, ModuleLoadedParam]
+```
+→ hook không init → IMEI/GAID/Android-ID **không** đổi được bằng module này trên LSPosed hiện tại của VMOS. Scope automation đúng; module chỉ đơn giản là không tương thích framework bundled.
+
+**Lưu ý thêm:** `service call iphonesubinfo` / `getprop` từ shell **không** phải oracle đúng cho LSPosed hook — hook nằm ở **tầng Java app-side** (`TelephonyManager.getImei()`, `Settings.Secure`, `Build.*`), còn `service call` gọi thẳng binder service. Phải verify bằng **app được scope**, không phải shell.
+
+**➡️ Khuyến nghị:** trên LSPosed bundled của VMOS, ưu tiên module viết cho **classic Xposed API** (`de.robv.android.xposed`) — vd **AndroidFaker** — khớp framework cũ, thay vì module libxposed mới. (Hoặc thay `zygisk_lsposed` bằng bản LSPosed mới hơn — nặng/rủi ro hơn.) Phần spoof **tầng Magisk** (build props + Android ID qua SSAID ở trên) KHÔNG cần LSPosed và đã chạy end-to-end.
+
 ## ⚠️ Lưu ý
 
 - **Bị phát hiện**: mọi hook mức Java đều có thể bị app cứng phát hiện (đọc native `__system_property_get`, Cronet, thư viện integrity). Lớp Magisk boot của DeviceSpoofLab giảm rủi ro đọc native; khi bị phát hiện có thể dùng LSPosed fork ẩn hơn (vd "Vector").
