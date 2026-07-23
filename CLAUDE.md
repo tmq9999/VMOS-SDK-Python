@@ -79,9 +79,10 @@ Mutating operations (restart, reset, screenshots, ADB, file push, app install)
 return task descriptors, not final results:
 
 ```python
-tasks = client.instance.restart(pad_codes=["AC..."])   # -> [{"taskId": 123, ...}]
-detail = client.tasks.pad_task_detail(task_ids=[tasks[0]["taskId"]])
-# taskStatus: 3 = success; poll or subscribe to webhook callbacks instead of assuming completion
+tasks = client.instance.async_cmd(pad_codes=["AC..."], script_content="getprop ro.product.model")
+detail = client.tasks.pad_task_detail(task_ids=[tasks[0]["taskId"]])  # live-verified tracker
+# taskStatus: 1 = running, 3 = success; command stdout arrives in taskResult.
+# Poll pad_task_detail / get_task_status, or subscribe to webhook callbacks.
 ```
 
 Webhooks: `vmos.callbacks.parse_callback(payload_dict)` → `CallbackEvent`
@@ -103,9 +104,15 @@ Webhooks: `vmos.callbacks.parse_callback(payload_dict)` → `CallbackEvent`
   tuples `("name.apk", b"...")`; the file body is intentionally not signed (per spec).
 - Batch endpoints take plural args (`pad_codes: list`); single-target endpoints
   take `pad_code: str`. Docstrings and the manifest are authoritative.
-- **`instance.pad_detail` is documented but NOT deployed** on the production
-  gateway as of 2026-07 (HTTP 404 → `VMOSHTTPError`). List instances with
-  `client.phone.user_pad_list()` instead.
+- **Documented but NOT deployed** on the production gateway as of 2026-07
+  (HTTP 404 → `VMOSHTTPError`): `instance.pad_detail`, `instance.screenshot_info`,
+  `instance.execute_script_info`, `tasks.pad_execute_task_info`. Working
+  replacements: `phone.user_pad_list()` to list instances;
+  `tasks.pad_task_detail(task_ids=[...])` / `tasks.get_task_status(task_id=...)`
+  to track ANY task (ADB, uploads, app ops).
+- **Screenshots are synchronous in production**: `instance.screenshot(pad_codes,
+  rotation=0)` returns `[{padCode, accessUrl, success, expireAt}]` — download
+  the signed `accessUrl` immediately (it expires); no task polling needed.
 
 ## Cookbook
 

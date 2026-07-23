@@ -125,7 +125,8 @@ Need the raw envelope (`code`, `msg`, `ts`, `data`) without raising? Use `client
 - **Async operations**: many endpoints (restart, screenshots, ADB, file push) return a `taskId`; poll `client.tasks.*` or receive webhook callbacks (`vmos.callbacks.parse_callback`).
 - **Forward compatible**: any new parameter VMOS adds can be passed today via `**extra`.
 - **Touch rate limit**: the humanized touch APIs reject repeat calls to the same device within 2 s (code 1218 → `VMOSRateLimitError`).
-- **`pad_detail` heads-up**: the docs describe `/padApi/padDetail`, but the production gateway currently returns HTTP 404 for it (docs ahead of deployment). Use `client.phone.user_pad_list()` to list instances; `client.instance.pad_detail()` stays in the SDK for when VMOS ships it.
+- **Production vs docs** (live-tested 2026-07): a few documented endpoints are not deployed yet and return HTTP 404: `padDetail`, `screenshotInfo`, `executeScriptInfo`, `padExecuteTaskInfo`. Working alternatives: list instances with `client.phone.user_pad_list()`; track any task with `client.tasks.pad_task_detail(task_ids=[...])` or `client.tasks.get_task_status(task_id=...)`.
+- **Screenshots are synchronous in production**: `client.instance.screenshot(...)` returns `[{padCode, accessUrl, success, expireAt}]` — a signed, expiring URL you can download immediately (the docs describe an async task variant; production skips it).
 
 ### Examples
 
@@ -268,7 +269,8 @@ Cần nguyên vẹn envelope (`code`, `msg`, `ts`, `data`) mà không ném lỗi
 - **Thao tác bất đồng bộ**: nhiều endpoint (restart, chụp màn hình, ADB, đẩy file) trả về `taskId`; poll qua `client.tasks.*` hoặc nhận webhook callback (`vmos.callbacks.parse_callback`).
 - **Tương thích tương lai**: tham số mới VMOS thêm sau này truyền ngay qua `**extra`.
 - **Giới hạn tốc độ cảm ứng**: API touch giống người thật từ chối gọi lặp lại cùng thiết bị trong vòng 2 giây (code 1218 → `VMOSRateLimitError`).
-- **Lưu ý `pad_detail`**: tài liệu mô tả `/padApi/padDetail` nhưng gateway production hiện trả HTTP 404 (tài liệu đi trước deployment). Dùng `client.phone.user_pad_list()` để liệt kê instance; `client.instance.pad_detail()` vẫn giữ trong SDK chờ VMOS triển khai.
+- **Production vs tài liệu** (đã test live 2026-07): một số endpoint có trong docs nhưng chưa deploy, trả HTTP 404: `padDetail`, `screenshotInfo`, `executeScriptInfo`, `padExecuteTaskInfo`. Thay thế hoạt động tốt: liệt kê instance bằng `client.phone.user_pad_list()`; theo dõi mọi task bằng `client.tasks.pad_task_detail(task_ids=[...])` hoặc `client.tasks.get_task_status(task_id=...)`.
+- **Screenshot là synchronous trên production**: `client.instance.screenshot(...)` trả về `[{padCode, accessUrl, success, expireAt}]` — URL có chữ ký, có hạn, tải được ngay (docs mô tả biến thể task bất đồng bộ; production bỏ qua bước đó).
 
 ### Ví dụ
 
