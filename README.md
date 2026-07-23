@@ -19,7 +19,7 @@ Complete, production-ready Python SDK for the [VMOS Cloud Server OpenAPI](https:
 - 🚨 **Clean error model**: `VMOSAPIError` (business errors), `VMOSAuthError` (signature/key issues 2019/2031/2032/2033), `VMOSRateLimitError`, `VMOSHTTPError`.
 - 📥 **Webhook callbacks**: `vmos.callbacks.parse_callback()` parses all documented callback payloads (ADB results, file uploads, app operations, status changes...).
 - 🧪 **182 tests**: official signing vector + a spec-driven test for *every single endpoint* (path, HTTP method, parameter names, signature over exact bytes).
-- ✅ **Live-verified**: POST & GET signing confirmed against the production API across multiple namespaces (`phone`, `instance`, `apps`).
+- ✅ **Live-verified**: POST & GET signing confirmed against the production API across `phone`, `instance`, `apps`, `tasks` and `touch` — including a full UI-automation flow (humanized click → text input → screenshot confirmation) on a real instance.
 - 🤖 **AI-ready**: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) and a machine-readable endpoint manifest ([`tests/data/endpoints_manifest.json`](tests/data/endpoints_manifest.json)) so Claude, Codex, Cursor & friends can use the SDK at full fidelity.
 
 ### Installation
@@ -163,7 +163,7 @@ SDK Python **đầy đủ và sẵn sàng cho production** dành cho [VMOS Cloud
 - 🚨 **Mô hình lỗi rõ ràng**: `VMOSAPIError` (lỗi nghiệp vụ), `VMOSAuthError` (lỗi chữ ký/khóa 2019/2031/2032/2033), `VMOSRateLimitError`, `VMOSHTTPError`.
 - 📥 **Webhook callback**: `vmos.callbacks.parse_callback()` phân tích mọi payload callback trong tài liệu (kết quả ADB, tải file, thao tác ứng dụng, thay đổi trạng thái...).
 - 🧪 **182 bài test**: test vector chữ ký chính thức + test tự động cho *từng endpoint một* (đường dẫn, HTTP method, tên tham số, chữ ký trên đúng byte gửi đi).
-- ✅ **Đã kiểm chứng với API thật**: chữ ký POST & GET xác nhận hoạt động trên API production qua nhiều namespace (`phone`, `instance`, `apps`).
+- ✅ **Đã kiểm chứng với API thật**: chữ ký POST & GET xác nhận trên production qua `phone`, `instance`, `apps`, `tasks` và `touch` — bao gồm cả luồng tự động hóa UI hoàn chỉnh (click giống người → nhập text → chụp màn hình xác nhận) trên instance thật.
 - 🤖 **Sẵn sàng cho AI**: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) và manifest endpoint dạng máy-đọc-được ([`tests/data/endpoints_manifest.json`](tests/data/endpoints_manifest.json)) để Claude, Codex, Cursor... dùng SDK chính xác tối đa.
 
 ### Cài đặt

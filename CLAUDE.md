@@ -127,10 +127,12 @@ client.instance.set_proxy(pad_codes=["AC..."], **{...})   # see docs/en/instance
 client.apps.upload_file_v3(pad_codes=["AC..."], url="https://.../app.apk", auto_install=1)
 client.apps.start_app(pad_codes=["AC..."], pkg_name="com.example.app")
 
-# Humanized UI automation
-client.touch.simulate_click(["AC..."], 360, 640, width=720, height=1280)
+# Humanized UI automation (live-verified flow: click -> input_text -> screenshot)
+client.touch.simulate_click(["AC..."], 540, 594, width=1080, height=2340)  # x/y in physical px
 client.touch.simulate_swipe(["AC..."], start_x=360, start_y=1000, end_x=360, end_y=300)
-client.instance.input_text(...)          # text entry — see docs/en/instance.md
+client.instance.input_text(pad_codes=["AC..."], text="hello")  # types into the FOCUSED field
+# touch dispatch returns [{taskId, dispatchCode, vmStatus, taskStatus}]; wait ~2s between
+# touch calls per device (rate limit) and let UI settle before screenshotting.
 
 # RPA flow dispatch
 flows = client.automation.scripts_list(page=1, size=20)
