@@ -35,11 +35,18 @@ import com.android.core.XSHelpers;
  * <p>Because this hooks the app-side Java getters it changes what the scoped app
  * actually reads — the layer {@code resetprop} alone cannot reach. Coverage:
  * {@code TelephonyManager} (IMEI/MEID/IMSI/ICCID/line1), {@code Settings.Secure}
- * (ANDROID_ID), {@code AdvertisingIdClient} (GAID), {@code WifiInfo} (MAC/BSSID),
- * {@code Build.getSerial()}, {@code MediaDrm} (Widevine device id), and the MSA
- * OAID supplier. Every extra hook is guarded — absent classes are skipped — so
- * one APK is safe to load into any target, and you extend it by adding a hook
- * for whatever getter a specific app uses.
+ * (ANDROID_ID), {@code AdvertisingIdClient$Info.getId} (common GAID path),
+ * {@code WifiInfo} (MAC/BSSID), {@code Build.getSerial()}, {@code MediaDrm}
+ * deviceUniqueId getter, and the MSA OAID supplier. Every extra hook is
+ * guarded — absent classes are skipped — so one APK is safe to load into any
+ * target, and you extend it by adding a hook for whatever getter a specific app
+ * uses.
+ *
+ * <p><b>Scope/limits:</b> this is an <i>app-process, Java-layer</i> hook. It does
+ * not hook Binder/AIDL, JNI, or native code (so a shell {@code service call
+ * iphonesubinfo} still returns the real IMEI), does not cover every method
+ * overload or a separate {@code DexClassLoader}, and does not alter Widevine
+ * provisioning/attestation. {@link #systemMain} is a no-op stub today.
  */
 public class Entry {
 

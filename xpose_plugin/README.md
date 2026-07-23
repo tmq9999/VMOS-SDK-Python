@@ -3,10 +3,12 @@
 A **private, self-written** hook plugin for VMOS's **native XPose framework** —
 no LSPosed, no third-party module. It hooks the app-side Java getters so a target
 app reads the identity **you** choose — the layer `resetprop` alone cannot reach.
-Coverage: IMEI/MEID/IMSI/ICCID/phone (`TelephonyManager`), ANDROID_ID
-(`Settings.Secure`), GAID (`AdvertisingIdClient`), Wi-Fi MAC/BSSID (`WifiInfo`),
-hardware serial (`Build.getSerial()`), Widevine ID (`MediaDrm`), MSA OAID — and
-you extend it by adding a hook for whatever getter a specific app reads.
+Coverage (Java getters, app process): IMEI/MEID/IMSI/ICCID/phone
+(`TelephonyManager`), ANDROID_ID (`Settings.Secure`), GAID
+(`AdvertisingIdClient$Info.getId`), Wi-Fi MAC/BSSID (`WifiInfo`), hardware serial
+(`Build.getSerial()`), `MediaDrm` deviceUniqueId, MSA OAID — and you extend it by
+adding a hook for whatever getter a specific app reads. It does **not** reach
+Binder/native (see Scope & limits).
 
 Why this over LSPosed modules: VMOS ships the XPose framework in-image
 (`/system/bin/apmt`, confirmed working), so a plugin built against its API is
@@ -87,9 +89,18 @@ that calls `TelephonyManager.getImei()` — **not** `service call iphonesubinfo`
 or shell `getprop` (those bypass the Java hook). A quick check is a device-info
 app (e.g. an APK that shows IMEI) added as the target `-p` package.
 
-## Scope & ethics
+## Scope & limits
 
-Software/Java-layer spoof only; hardware-backed attestation (TEE key
-attestation, Play Integrity STRONG) is out of reach of any software method. Use
-for legitimate device-variety reselling and comply with VMOS's ToS and target
+Java-layer, **app-process** spoof: hooks are installed in the target app's
+process; the `systemMain` path is a no-op stub. It does **not** hook
+Binder/AIDL, JNI, or native — so a shell `service call iphonesubinfo` still shows
+the real IMEI (most apps use the Java `TelephonyManager` API, which *is* hooked).
+GAID = the common `AdvertisingIdClient$Info.getId()` path; MediaDrm = the
+`deviceUniqueId` getter only (not Widevine provisioning / certificate /
+security-level / keybox). Hardware attestation (TEE, Play Integrity STRONG) is
+unbeatable by any software; native/Binder reads need a different software
+approach (Frida, Zygisk-native, inline/JNI hooks) — out of scope here. Full
+detail: [../docs/en/xpose-custom-hook.md](../docs/en/xpose-custom-hook.md).
+
+Use for legitimate device-variety reselling; comply with VMOS's ToS and target
 apps' terms.

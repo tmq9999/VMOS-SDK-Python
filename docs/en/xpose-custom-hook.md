@@ -45,18 +45,18 @@ property means "leave the real value untouched", so you spoof only what you need
 | `persist.vmos.spoof.iccid` | `iccid` | `getSimSerialNumber()` |
 | `persist.vmos.spoof.line1` | `line1` | `getLine1Number()` |
 | `persist.vmos.spoof.androidid` | `android_id` | `Settings.Secure.getString(…, "android_id")` |
-| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (Google Advertising ID) |
+| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (common GAID read path) |
 | `persist.vmos.spoof.wifimac` | `wifi_mac` | `WifiInfo.getMacAddress()` |
 | `persist.vmos.spoof.bssid` | `bssid` | `WifiInfo.getBSSID()` |
 | `persist.vmos.spoof.serial` | `serial` | `Build.getSerial()` |
-| `persist.vmos.spoof.drmid` | `drm_id` | `MediaDrm` Widevine device id (hex) |
+| `persist.vmos.spoof.drmid` | `drm_id` | `MediaDrm.getPropertyByteArray("deviceUniqueId")` getter (hex) |
 | `persist.vmos.spoof.oaid` | `oaid` | MSA `IdSupplier.getOAID()` (best-effort per target) |
 
-**This is the "deep customization" edge:** you hook exactly the getters you
-want, and adding a surface is one line in `xpose_plugin/`. Every extra hook is
-guarded — if a class is absent in the target app it's skipped — so one APK loads
-safely into any app. Native-code reads (NDK/Cronet) and hardware attestation are
-the only ceilings; no software hook beats those.
+**Extensible by design:** you hook exactly the getters you want, and adding a
+surface is one line in `xpose_plugin/`. Every extra hook is guarded — if a class
+is absent in the target app it's skipped — so one APK loads safely into any app.
+This significantly widens Java-layer coverage of common fingerprint APIs; it is
+**not** a total device-identity replacement. See **Scope & limits** below.
 
 ## Deploy headless (VMOS SDK)
 
@@ -107,9 +107,33 @@ that calls `TelephonyManager.getImei()` (e.g. a device-info APK added as the `-p
 target). Do **not** use `service call iphonesubinfo` or shell `getprop` — those
 bypass the Java hook and will show the real value even when the spoof works.
 
-## Scope & ethics
+## Scope & limits (what it does / doesn't do)
 
-Software/Java-layer spoof only. Hardware-backed attestation (TEE key
-attestation, Play Integrity STRONG) is out of reach of any software method. Use
-for legitimate device-variety reselling and comply with VMOS's ToS and the
+Be precise about this to avoid over-promising to customers:
+
+- **App-process only.** Hooks are installed in the target app's process
+  (`appMain`). `systemMain` (`-p android`) is currently a no-op stub — there is
+  no system-wide hook yet.
+- **Java layer only.** It hooks Java getters. It does **not** hook Binder/AIDL
+  transactions, JNI, or native code. This is exactly why a shell `service call
+  iphonesubinfo` (the Binder path) still returned the real IMEI in our live
+  tests — expected: most apps use the Java `TelephonyManager` API, which *is*
+  hooked.
+- **Common access paths, not every overload.** GAID = `AdvertisingIdClient$Info.getId()`
+  (the usual read path) — not App Set ID, Limit-Ad-Tracking state, or the GMS
+  Binder route. MediaDrm = the `deviceUniqueId` getter only — it does **not**
+  change Widevine provisioning, the DRM certificate, security level, or keybox.
+- **Single class loader.** Classes are resolved via the loader passed to
+  `appMain`; app code loaded in a separate `DexClassLoader` may not be covered.
+
+**Ceilings:** hardware-backed attestation (TEE key attestation, Play Integrity
+STRONG) is unbeatable by **any** software method. Native / Binder reads are out
+of reach of **this Java plugin** — but other software approaches exist (Frida,
+Zygisk-native, inline / PLT-GOT / JNI hooks, ROM or system-library patching);
+they are simply out of scope here. To go deeper, extend the plugin
+(Binder / `system_server` hooks) or pair it with a native (Zygisk) layer.
+
+## Ethics
+
+Use for legitimate device-variety reselling and comply with VMOS's ToS and the
 target apps' terms.

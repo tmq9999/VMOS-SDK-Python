@@ -45,18 +45,18 @@ headless theo từng máy bằng Magisk `resetprop`. Property rỗng/chưa set n
 | `persist.vmos.spoof.iccid` | `iccid` | `getSimSerialNumber()` |
 | `persist.vmos.spoof.line1` | `line1` | `getLine1Number()` |
 | `persist.vmos.spoof.androidid` | `android_id` | `Settings.Secure.getString(…, "android_id")` |
-| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (Google Ad ID) |
+| `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (đường đọc GAID phổ biến) |
 | `persist.vmos.spoof.wifimac` | `wifi_mac` | `WifiInfo.getMacAddress()` |
 | `persist.vmos.spoof.bssid` | `bssid` | `WifiInfo.getBSSID()` |
 | `persist.vmos.spoof.serial` | `serial` | `Build.getSerial()` |
-| `persist.vmos.spoof.drmid` | `drm_id` | `MediaDrm` Widevine device id (hex) |
+| `persist.vmos.spoof.drmid` | `drm_id` | getter `MediaDrm.getPropertyByteArray("deviceUniqueId")` (hex) |
 | `persist.vmos.spoof.oaid` | `oaid` | MSA `IdSupplier.getOAID()` (best-effort theo target) |
 
-**Đây chính là điểm "tùy biến sâu":** bạn hook đúng những getter mình muốn, và
-thêm một bề mặt chỉ tốn một dòng trong `xpose_plugin/`. Mỗi hook thêm đều được
-bọc guard — class không có trong app đích thì bỏ qua — nên một APK nạp an toàn
-vào mọi app. Chỉ có đọc qua native (NDK/Cronet) và hardware attestation là trần
-giới hạn; không phương pháp phần mềm nào vượt được hai cái đó.
+**Thiết kế để mở rộng:** bạn hook đúng những getter mình muốn, thêm một bề mặt
+chỉ tốn một dòng trong `xpose_plugin/`. Mỗi hook đều bọc guard — class không có
+trong app đích thì bỏ qua — nên một APK nạp an toàn vào mọi app. Cách này **mở
+rộng đáng kể** vùng phủ ở tầng Java cho các API fingerprint phổ biến; nó **không**
+phải là thay toàn bộ danh tính thiết bị. Xem **Phạm vi & giới hạn** bên dưới.
 
 ## Triển khai headless (VMOS SDK)
 
@@ -107,8 +107,32 @@ scope** có gọi `TelephonyManager.getImei()` (vd một APK device-info thêm l
 `-p`). **Đừng** dùng `service call iphonesubinfo` hay `getprop` shell — chúng
 **bỏ qua** hook Java và sẽ hiện giá trị thật ngay cả khi spoof đã chạy.
 
-## Phạm vi & đạo đức
+## Phạm vi & giới hạn (làm được / KHÔNG làm được)
 
-Chỉ spoof tầng phần mềm/Java. Hardware attestation (TEE key attestation, Play
-Integrity STRONG) nằm ngoài tầm mọi phương pháp phần mềm. Dùng cho reseller đa
-dạng thiết bị hợp pháp; tuân thủ ToS của VMOS và điều khoản của app đích.
+Nói chính xác để không hứa quá với khách:
+
+- **Chỉ trong process app.** Hook cài trong tiến trình app đích (`appMain`).
+  `systemMain` (`-p android`) hiện là stub rỗng — chưa hook mức hệ thống.
+- **Chỉ tầng Java.** Hook các getter Java. **Không** hook Binder/AIDL, JNI hay
+  native. Đây chính là lý do `service call iphonesubinfo` (đường Binder) vẫn ra
+  IMEI thật trong test live — đúng dự kiến: đa số app dùng API Java
+  `TelephonyManager` (đã hook).
+- **Đường truy cập phổ biến, không phải mọi overload.** GAID =
+  `AdvertisingIdClient$Info.getId()` (đường đọc thường gặp) — không phải App Set
+  ID / Limit-Ad-Tracking / đường Binder tới GMS. MediaDrm = chỉ getter
+  `deviceUniqueId` — **không** đổi provisioning, DRM certificate, security level
+  hay keybox của Widevine.
+- **Một class loader.** Resolve class qua loader `appMain` truyền vào; code app
+  nạp trong `DexClassLoader` riêng có thể không được phủ.
+
+**Trần giới hạn:** hardware attestation (TEE key attestation, Play Integrity
+STRONG) thì **không phần mềm nào** vượt được. Đọc qua native/Binder thì **plugin
+Java này** không với tới — NHƯNG vẫn có cách phần mềm khác (Frida, Zygisk-native,
+inline / PLT-GOT / JNI hook, vá ROM/system library); chỉ là ngoài phạm vi ở đây.
+Muốn sâu hơn: mở rộng plugin (hook Binder / `system_server`) hoặc ghép thêm lớp
+native (Zygisk).
+
+## Đạo đức
+
+Dùng cho reseller đa dạng thiết bị hợp pháp; tuân thủ ToS của VMOS và điều khoản
+của app đích.
