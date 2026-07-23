@@ -55,8 +55,8 @@ client = VMOSClient("ak_...", "sk_...")        # or explicit
 from vmos import VMOSClient, VMOSAPIError
 
 with VMOSClient() as client:
-    # List cloud phones (paginated)
-    page = client.instance.pad_detail(rows=20)
+    # List your cloud phones (live-verified)
+    pads = client.phone.user_pad_list()
 
     # Restart an instance → async task
     tasks = client.instance.restart(pad_codes=["AC32010180421"])
@@ -78,8 +78,8 @@ from vmos import AsyncVMOSClient
 
 async def main():
     async with AsyncVMOSClient() as client:
-        page = await client.instance.pad_detail(rows=50)
-        print(page)
+        pads = await client.phone.user_pad_list()
+        print(pads)
 
 asyncio.run(main())
 ```
@@ -198,8 +198,8 @@ client = VMOSClient("ak_...", "sk_...")        # hoặc truyền trực tiếp
 from vmos import VMOSClient, VMOSAPIError
 
 with VMOSClient() as client:
-    # Danh sách cloud phone (phân trang)
-    page = client.instance.pad_detail(rows=20)
+    # Danh sách cloud phone của bạn (đã kiểm chứng live)
+    pads = client.phone.user_pad_list()
 
     # Khởi động lại instance → tác vụ bất đồng bộ
     tasks = client.instance.restart(pad_codes=["AC32010180421"])
@@ -221,8 +221,8 @@ from vmos import AsyncVMOSClient
 
 async def main():
     async with AsyncVMOSClient() as client:
-        page = await client.instance.pad_detail(rows=50)
-        print(page)
+        pads = await client.phone.user_pad_list()
+        print(pads)
 
 asyncio.run(main())
 ```

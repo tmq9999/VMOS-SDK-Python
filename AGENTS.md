@@ -64,7 +64,7 @@ path). CI (`.github/workflows/ci.yml`) runs the suite on Python 3.9–3.13.
 from vmos import VMOSClient, AsyncVMOSClient, VMOSAPIError
 
 client = VMOSClient()  # or VMOSClient("ak", "sk"); env: VMOS_ACCESS_KEY/VMOS_SECRET_KEY
-data = client.instance.pad_detail(rows=20)      # returns response `data`; raises on code != 200
+data = client.phone.user_pad_list()             # returns response `data`; raises on code != 200
 ```
 
 - Namespaces: `instance`, `apps`, `tasks`, `phone`, `storage`, `static_proxy`,

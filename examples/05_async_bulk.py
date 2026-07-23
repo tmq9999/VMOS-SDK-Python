@@ -6,9 +6,8 @@ from vmos import AsyncVMOSClient
 
 async def main() -> None:
     async with AsyncVMOSClient() as client:
-        page = await client.instance.pad_detail(rows=50)
-        records = page.get("page", {}).get("records", []) if isinstance(page, dict) else []
-        codes = [r["padCode"] for r in records]
+        pads = await client.phone.user_pad_list()
+        codes = [p["padCode"] for p in pads]
         print(f"{len(codes)} instances")
 
         # Query properties for every pad concurrently

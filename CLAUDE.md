@@ -110,8 +110,8 @@ Webhooks: `vmos.callbacks.parse_callback(payload_dict)` → `CallbackEvent`
 ## Cookbook
 
 ```python
-# List all pads, then act on each
-page = client.instance.pad_detail(rows=100)
+# List all pads, then act on each (user_pad_list is live-verified)
+pads = client.phone.user_pad_list()
 
 # Set an HTTP/SOCKS proxy on pads
 client.instance.set_proxy(pad_codes=["AC..."], **{...})   # see docs/en/instance.md
