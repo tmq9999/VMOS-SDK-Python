@@ -119,6 +119,23 @@ Nói cách khác: trên **thiết bị thật**, phần **model/fingerprint** (r
 
 ---
 
+## 🧪 Kết quả thực nghiệm — field nào đổi được qua API? (real device)
+
+> Thử nghiệm trực tiếp trên **thiết bị thật** (Pixel 7 Pro, Android 13) ngày 2026-07-24 bằng script [`examples/09_probe_changeable_properties.py`](../../examples/09_probe_changeable_properties.py): ghi giá trị thử vào **từng** field qua `updatePadProperties` (cả lớp dynamic lẫn persistent), rồi kiểm chứng bằng 2 nguồn — đọc lại `pad_properties` **và** `getprop` qua ADB (runtime thật). Sau đó khôi phục giá trị gốc.
+
+**Kết quả: 0/23 field đổi được.** Mọi request đều trả **HTTP 200 (accepted)** nhưng **không field nào thay đổi** trên runtime thực — xác nhận bằng `getprop ro.product.model` vẫn = `Pixel 7 Pro` sau khi ghi.
+
+| Nhóm | Field đã thử | Kết quả |
+|---|---|---|
+| modem | IMEI, IMSI, ICCID, MCCMNC, OpName, PhoneNum | ✅ accepted (200) · ❌ không hiệu lực |
+| system | ro.product.model/brand/manufacturer, ro.build.fingerprint, ro.build.version.release, wifiMac, bluetoothaddr, gpuRenderer | ✅ accepted (200) · ❌ không hiệu lực |
+| setting | language, timezone, systemvolume, bt/mac, ssaid/&lt;pkg&gt; | ✅ accepted (200) · ❌ không hiệu lực |
+| oaid | OAID, VAID, AAID, UDID | ✅ accepted (200) · ❌ không hiệu lực |
+
+**➡️ Kết luận:** trên **thiết bị thật**, `updatePadProperties` per-key **không đổi được định danh** — API "nuốt" request (trả 200) nhưng fingerprint bị khoá vào **ADI template**. Muốn đổi → dùng `client.phone.replace_real_adi_template(...)` hoặc `replace_pad(...)`/`pad_replace_new(...)`. Các thuộc tính SIM/GPS/timezone/proxy dùng endpoint chuyên dụng ở mục 3 (chưa test thay đổi trong thí nghiệm này).
+
+> ⚠️ Chưa kiểm chứng lớp **persistent + khởi động lại**: thí nghiệm không reboot máy. Lớp dynamic (docs nói "hiệu lực ngay") đã xác nhận **bị bỏ qua** trên máy thật. Trên **máy ảo** kỳ vọng per-key sẽ có hiệu lực — chạy script probe để tự xác nhận theo loại instance của bạn.
+
 ## Lưu ý trung thực về giới hạn tài liệu
 
 - Tài liệu VMOS **không công bố một danh sách riêng "các key chỉ được đổi trên thiết bị thật"**. Danh mục key ở mục 2 là **dùng chung** cho instance.

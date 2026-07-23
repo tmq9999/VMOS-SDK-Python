@@ -101,6 +101,23 @@ In short: on a **real device**, the **model/fingerprint** (ro.product.\*, ro.bui
 
 ---
 
+## 🧪 Experiment — which fields are actually changeable via the API? (real device)
+
+> Tested directly on a **real device** (Pixel 7 Pro, Android 13) on 2026-07-24 with [`examples/09_probe_changeable_properties.py`](../../examples/09_probe_changeable_properties.py): wrote a test value to **each** field via `updatePadProperties` (both the dynamic and persistent layers), then verified against two oracles — a `pad_properties` read-back **and** ADB `getprop` (the live runtime). Originals were restored afterward.
+
+**Result: 0/23 fields changed.** Every request returned **HTTP 200 (accepted)** but **none** altered the live runtime — confirmed by `getprop ro.product.model` still returning `Pixel 7 Pro` after the write.
+
+| Group | Fields tried | Result |
+|---|---|---|
+| modem | IMEI, IMSI, ICCID, MCCMNC, OpName, PhoneNum | ✅ accepted (200) · ❌ no effect |
+| system | ro.product.model/brand/manufacturer, ro.build.fingerprint, ro.build.version.release, wifiMac, bluetoothaddr, gpuRenderer | ✅ accepted (200) · ❌ no effect |
+| setting | language, timezone, systemvolume, bt/mac, ssaid/&lt;pkg&gt; | ✅ accepted (200) · ❌ no effect |
+| oaid | OAID, VAID, AAID, UDID | ✅ accepted (200) · ❌ no effect |
+
+**➡️ Conclusion:** on a **real device**, per-key `updatePadProperties` **cannot change the identity** — the API swallows the request (returns 200) but the fingerprint is locked to the **ADI template**. To change it, use `client.phone.replace_real_adi_template(...)` or `replace_pad(...)` / `pad_replace_new(...)`. SIM/GPS/timezone/proxy are handled by the dedicated endpoints in section 3 (their write behavior was not mutated in this experiment).
+
+> ⚠️ The **persistent + restart** path was not verified (the experiment issues no reboot). The dynamic layer (docs say "immediate") is confirmed **ignored** on a real device. On a **virtual** instance per-key writes are expected to take effect — run the probe to confirm for your instance type.
+
 ## Honest note on documentation limits
 
 - The VMOS docs do **not** publish a separate "keys editable only on real devices" list. The key catalog in section 2 is **shared** across instances.
