@@ -28,6 +28,40 @@
 - Identity theo instance: mô hình reseller "1 máy = 1 identity" → dùng module scope **system-framework** (kiểu Lsposed-SimSpoof) hoặc ghi config per-app của DeviceSpoofLab bằng root là hướng tự động hoá.
 - Nhất quán: kết hợp module (IMEI/GAID/AndroidID) + `vmos.spoof` (build.prop) + `update_sim`/proxy (nhà mạng/IP) để có hồ sơ đồng bộ.
 
+## Test thực tế — cài DeviceSpoofLab headless & kết quả (2026-07)
+
+Đã cài **DeviceSpoofLab** end-to-end lên pad real-device, hoàn toàn headless qua root shell, và kiểm chứng:
+
+**Cài (không UI):** pad có `curl` + `busybox` + `pm`:
+```sh
+curl -Lks -o /data/local/tmp/dsl.zip  <release .zip của DeviceSpoofLab-Magisk>
+curl -Lks -o /data/local/tmp/dsl.apk  <release .apk của DeviceSpoofLab-Hooks>
+mkdir -p /data/adb/modules/devicespooflab
+cd /data/adb/modules/devicespooflab && busybox unzip -o -q /data/local/tmp/dsl.zip
+pm install -r -g /data/local/tmp/dsl.apk        # APK LSPosed hooks (com.devicespooflab.hooks)
+```
+Copy tay thư mục module **được Magisk nhận lúc boot** (chạy `post-fs-data.sh`). Module theo cơ chế **persona**, script hoàn toàn qua CLI `common/webctl.sh`:
+```sh
+W=/data/adb/modules/devicespooflab/common/webctl.sh
+sh $W generate-persona                          # tạo+activate persona (đọc config/*.conf), mark reboot
+sh $W set-android-id "$(printf 'ENABLED\nVALUE=<16hex>\nUSER=0\nPKG=com.android.vending\n' | base64 -w0)"
+sh $W apply-android-id                           # ghi lại SSAID store
+sh $W status ; sh $W personas                    # trạng thái JSON
+sh $W persona-delete <id>                        # revert về identity gốc
+# rồi: reboot để áp dụng
+```
+Config là CSV thuần trong `config/*.conf` (`ENABLED,prop,value`, generator `${RANDOM_SERIAL}`, `${RANDOM_HEX:N}`) → chọn identity script được (vd `sed -i 's/Pixel 7 Pro/Pixel 10 Pro/g' config/device_identity.conf`).
+
+**Kết quả sau reboot:**
+
+| Mục tiêu | Cách | Kết quả |
+|---|---|---|
+| Build props (model → Pixel 10 Pro + partitions, serial) | Magisk `resetprop` lúc post-fs-data (persona) | ✅ `getprop ro.product.model` = Pixel 10 Pro; dính qua reboot |
+| **Android ID** (vending, gms) | **ghi lại `/data/system/users/0/settings_ssaid.xml`** (ABX) — KHÔNG dùng `settings put` | ✅ đổi thành `00ddeeff11223344` (xác nhận trong ABX) — **đây là cách vượt được VMOS chặn `settings put`** |
+| Đảo ngược | `persona-delete` khôi phục từ backup | ✅ về Pixel 7 Pro + SSAID gốc |
+
+**IMEI / GAID (APK LSPosed) — chưa xong headless:** APK `com.devicespooflab.hooks` cài được, nhưng hook IMEI/GAID cần module **enabled + scoped** trong LSPosed. LSPosed lưu ở `/data/adb/lspd/config/modules_config.db` (root:root 600, context `u:object_r:system_file:s0`) — **root sửa được** NHƯNG pad **không có `sqlite3`** và DB dùng WAL (`modules_config.db-wal` ~120KB) quá lớn để pull qua kênh base64 của `async_cmd`. Nên muốn script scope cần: (a) đẩy binary `sqlite3` tĩnh lên pad để sửa on-device, (b) chuyển WAL theo chunk + checkpoint, hoặc (c) enable+scope 1 lần qua **LSPosed Manager UI** (có thể UI-automation bằng `simulate_click`). Phần build-prop + Android-ID ở trên KHÔNG cần bước này.
+
 ## ⚠️ Lưu ý
 
 - **Bị phát hiện**: mọi hook mức Java đều có thể bị app cứng phát hiện (đọc native `__system_property_get`, Cronet, thư viện integrity). Lớp Magisk boot của DeviceSpoofLab giảm rủi ro đọc native; khi bị phát hiện có thể dùng LSPosed fork ẩn hơn (vd "Vector").

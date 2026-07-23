@@ -52,6 +52,56 @@ LSPosed *framework* alone (done) hooks nothing — you must install a spoofing
 - Consistency: pair the module (IMEI/GAID/AndroidID) with `vmos.spoof`
   (build.prop) and `update_sim` + proxy (carrier/IP) for a coherent profile.
 
+## Live test — DeviceSpoofLab headless install & results (2026-07)
+
+Installed **DeviceSpoofLab** end-to-end on the real-device pad, fully headless via
+the root shell, and verified:
+
+**Install (no UI):**
+```sh
+# on the pad (root shell via async_cmd) — pad has curl + busybox + pm
+curl -Lks -o /data/local/tmp/dsl.zip  <DeviceSpoofLab-Magisk release .zip>
+curl -Lks -o /data/local/tmp/dsl.apk  <DeviceSpoofLab-Hooks release .apk>
+mkdir -p /data/adb/modules/devicespooflab
+cd /data/adb/modules/devicespooflab && busybox unzip -o -q /data/local/tmp/dsl.zip
+pm install -r -g /data/local/tmp/dsl.apk        # LSPosed hooks APK (com.devicespooflab.hooks)
+```
+A manually-copied module dir **is picked up by Magisk at boot** (its
+`post-fs-data.sh` ran). The module is **persona-driven** and fully scriptable
+through its CLI (`common/webctl.sh`):
+```sh
+W=/data/adb/modules/devicespooflab/common/webctl.sh
+sh $W generate-persona                          # create+activate a persona (uses config/*.conf), marks reboot
+sh $W set-android-id "$(printf 'ENABLED\nVALUE=<16hex>\nUSER=0\nPKG=com.android.vending\n' | base64 -w0)"
+sh $W apply-android-id                           # rewrites SSAID store
+sh $W status ; sh $W personas                    # JSON status
+sh $W persona-delete <id>                        # revert to genuine identity
+# then: reboot to apply
+```
+Config is plain CSV in `config/*.conf` (`ENABLED,prop,value`, generators
+`${RANDOM_SERIAL}`, `${RANDOM_HEX:N}`), so a chosen identity is scriptable
+(e.g. `sed -i 's/Pixel 7 Pro/Pixel 10 Pro/g' config/device_identity.conf`).
+
+**Verified results after reboot:**
+
+| Target | Method | Result |
+|---|---|---|
+| Build props (model → Pixel 10 Pro, +partitions, serial) | Magisk `resetprop` at post-fs-data (persona) | ✅ `getprop ro.product.model` = Pixel 10 Pro; persists across reboot |
+| **Android ID** (com.android.vending, com.google.android.gms) | **rewrite `/data/system/users/0/settings_ssaid.xml`** (ABX) — NOT `settings put` | ✅ changed to `00ddeeff11223344` (confirmed in ABX) — **this is the method that beats VMOS's `settings put` block** |
+| Reversibility | `persona-delete` restores original from backup | ✅ back to Pixel 7 Pro + original SSAID |
+
+**IMEI / GAID (LSPosed APK) — not completed headless:** the
+`com.devicespooflab.hooks` APK installs, but hooking IMEI/GAID needs the module
+**enabled + scoped** in LSPosed. LSPosed stores that in
+`/data/adb/lspd/config/modules_config.db` (owner root:root 600, context
+`u:object_r:system_file:s0`), which is **root-owned/editable** — BUT the pad has
+**no `sqlite3`** and the DB uses WAL (`modules_config.db-wal` ~120 KB) that is too
+large to pull through the `async_cmd` base64 channel. So scripting the scope
+needs one of: (a) push a static `sqlite3` binary and edit on-device, (b) chunked
+WAL transfer + checkpoint, or (c) one-time enable+scope in the **LSPosed Manager
+UI** (which can be UI-automated with `simulate_click`). Build-prop + Android-ID
+spoofing above needs neither.
+
 ## ⚠️ Caveats
 
 - **Detection**: all Java-level hooks can be detected by hardened apps
