@@ -159,10 +159,15 @@ def main():
                 page.append(render_endpoint(path, e, lang))
             (outdir / f"{mod}.md").write_text("\n".join(page), encoding="utf-8")
         total = sum(len(v) for v in by_module.values())
-        topic = ("[Cloud Real Device — changeable properties](real-device-properties.md)"
-                 if lang == "en" else
-                 "[Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)")
-        index += ["", "## " + ("Topic guides" if lang == "en" else "Hướng dẫn chuyên đề"), "", "- " + topic, ""]
+        if lang == "en":
+            topics = ["[Cloud Real Device — changeable properties](real-device-properties.md)",
+                      "[Device-Spoofing Toolkit (reseller)](device-spoofing-toolkit.md)"]
+        else:
+            topics = ["[Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)",
+                      "[Toolkit spoof thiết bị (reseller)](toolkit-spoof-thiet-bi.md)"]
+        index += ["", "## " + ("Topic guides" if lang == "en" else "Hướng dẫn chuyên đề"), ""]
+        index += ["- " + t for t in topics]
+        index += [""]
         index += ["", f"**Total: {total} endpoints / 11 namespaces.**", ""]
         if lang == "en":
             index += ["See also: [../vi/README.md](../vi/README.md) — Tài liệu tiếng Việt.", ""]

@@ -21,6 +21,7 @@ Mỗi namespace bên dưới là một thuộc tính của `VMOSClient` / `Async
 ## Hướng dẫn chuyên đề
 
 - [Thiết bị thật — thuộc tính đổi được](thiet-bi-that-properties.md)
+- [Toolkit spoof thiết bị (reseller)](toolkit-spoof-thiet-bi.md)
 
 
 **Total: 152 endpoints / 11 namespaces.**
