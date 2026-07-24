@@ -113,10 +113,10 @@ Nói chính xác để không hứa quá với khách:
 
 - **Chỉ trong process app.** Hook cài trong tiến trình app đích (`appMain`).
   `systemMain` (`-p android`) hiện là stub rỗng — chưa hook mức hệ thống.
-- **Chỉ tầng Java.** Hook các getter Java. **Không** hook Binder/AIDL, JNI hay
-  native. Đây chính là lý do `service call iphonesubinfo` (đường Binder) vẫn ra
-  IMEI thật trong test live — đúng dự kiến: đa số app dùng API Java
-  `TelephonyManager` (đã hook).
+- **Plugin hiện tại chỉ tầng Java** (chưa build module native). Hook getter Java,
+  nên `service call iphonesubinfo` (đường Binder) vẫn ra IMEI thật — đúng dự
+  kiến: đa số app dùng API Java `TelephonyManager` (đã hook). **Native hook thì
+  framework CÓ hỗ trợ** (xem "Native hook" bên dưới); chỉ là plugin này chưa làm.
 - **Đường truy cập phổ biến, không phải mọi overload.** GAID =
   `AdvertisingIdClient$Info.getId()` (đường đọc thường gặp) — không phải App Set
   ID / Limit-Ad-Tracking / đường Binder tới GMS. MediaDrm = chỉ getter
@@ -125,12 +125,18 @@ Nói chính xác để không hứa quá với khách:
 - **Một class loader.** Resolve class qua loader `appMain` truyền vào; code app
   nạp trong `DexClassLoader` riêng có thể không được phủ.
 
-**Trần giới hạn:** hardware attestation (TEE key attestation, Play Integrity
-STRONG) thì **không phần mềm nào** vượt được. Đọc qua native/Binder thì **plugin
-Java này** không với tới — NHƯNG vẫn có cách phần mềm khác (Frida, Zygisk-native,
-inline / PLT-GOT / JNI hook, vá ROM/system library); chỉ là ngoài phạm vi ở đây.
-Muốn sâu hơn: mở rộng plugin (hook Binder / `system_server`) hoặc ghép thêm lớp
-native (Zygisk).
+**Native hook (framework CÓ hỗ trợ, chỉ là chưa build ở đây).** XPose của VMOS
+kèm sẵn bộ inline-hook native — **Dobby** (`DobbyHook(addr, replace, &backup)`) +
+resolver ký hiệu **xDL** — cộng engine `libengcore.so` (export hàm wrapper
+`db_hk_wrapper`). Demo chính thức ArmCloudXposed build một module native
+(`module2.so`) bằng CMake/NDK, nạp từ `appMain` qua `System.loadLibrary`, và
+trong `JNI_OnLoad` hook libc `open`/`openat` và `do_dlopen` của linker (để bắt
+`.so` mà app nạp rồi hook hàm JNI bên trong). Nên plugin **có thể** với tới đọc
+native/JNI/Binder, Cronet, và SDK OAID native bằng cách thêm `.so` riêng — đây là
+việc trong lộ trình, không phải bất khả thi.
+
+**Trần giới hạn cứng duy nhất** là hardware attestation (TEE key attestation,
+Play Integrity STRONG) — không phần mềm nào vượt được, native hay không.
 
 ## Đạo đức
 

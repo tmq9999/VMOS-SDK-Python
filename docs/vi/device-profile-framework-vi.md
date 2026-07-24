@@ -75,6 +75,13 @@ Mỗi field ghi rõ **tầng nào áp** và **verify ra sao**.
     quán — chính là bản vá cho "lỗ hổng Binder" trước đây.
   - Hook `system_server` rủi ro hơn (crash có thể bootloop máy), nên opt-in và
     scope hẹp.
+- **Native hook được framework hỗ trợ** (năng lực riêng, chưa build ở đây): XPose
+  của VMOS kèm **Dobby** (inline hook) + **xDL** (resolver ký hiệu) và engine
+  `libengcore.so`, minh hoạ trong demo ArmCloudXposed (hook libc `open`/`openat`
+  và `do_dlopen` của linker). Plugin có thể thêm `.so` riêng (nạp từ `appMain`)
+  để chặn **đọc native/JNI/Binder, Cronet, và SDK OAID native** — chính là đòn
+  bẩy cho các định danh không lộ ra ở tầng Java. Chỉ hardware attestation (TEE)
+  là ngoài tầm.
 
 ## 5. Bộ máy nhất quán (giá trị sản phẩm thật sự)
 

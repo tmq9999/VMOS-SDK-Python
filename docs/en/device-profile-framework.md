@@ -78,6 +78,13 @@ Each field is annotated with **which layer applies it** and **how to verify it**
     iphonesubinfo`) consistent — the fix for the earlier "Binder bypass" gap.
   - Hooking `system_server` is higher-risk (a crash there can bootloop the
     instance), so it is opt-in and narrowly scoped.
+- **Native hooks are framework-supported** (a distinct capability, not yet built
+  here): VMOS's XPose ships **Dobby** (inline hook) + **xDL** (symbol resolver)
+  and the `libengcore.so` engine, demonstrated in the ArmCloudXposed demo
+  (hooking libc `open`/`openat` and the linker's `do_dlopen`). A plugin can add a
+  native `.so` (loaded from `appMain`) to intercept **native/JNI/Binder reads,
+  Cronet, and native OAID SDKs** — the lever for identity that never surfaces in
+  Java. Only hardware attestation (TEE) stays out of reach.
 
 ## 5. Consistency engine (the real product value)
 

@@ -115,11 +115,11 @@ Be precise about this to avoid over-promising to customers:
 - **App-process only.** Hooks are installed in the target app's process
   (`appMain`). `systemMain` (`-p android`) is currently a no-op stub — there is
   no system-wide hook yet.
-- **Java layer only.** It hooks Java getters. It does **not** hook Binder/AIDL
-  transactions, JNI, or native code. This is exactly why a shell `service call
-  iphonesubinfo` (the Binder path) still returned the real IMEI in our live
-  tests — expected: most apps use the Java `TelephonyManager` API, which *is*
-  hooked.
+- **Current plugin is Java-layer only** (no native module built yet). It hooks
+  Java getters, so a shell `service call iphonesubinfo` (the Binder path) still
+  returns the real IMEI — expected: most apps use the Java `TelephonyManager`
+  API, which *is* hooked. **Native hooking is supported by the framework** (see
+  "Native hooking" below); it simply isn't implemented in this plugin yet.
 - **Common access paths, not every overload.** GAID = `AdvertisingIdClient$Info.getId()`
   (the usual read path) — not App Set ID, Limit-Ad-Tracking state, or the GMS
   Binder route. MediaDrm = the `deviceUniqueId` getter only — it does **not**
@@ -127,12 +127,19 @@ Be precise about this to avoid over-promising to customers:
 - **Single class loader.** Classes are resolved via the loader passed to
   `appMain`; app code loaded in a separate `DexClassLoader` may not be covered.
 
-**Ceilings:** hardware-backed attestation (TEE key attestation, Play Integrity
-STRONG) is unbeatable by **any** software method. Native / Binder reads are out
-of reach of **this Java plugin** — but other software approaches exist (Frida,
-Zygisk-native, inline / PLT-GOT / JNI hooks, ROM or system-library patching);
-they are simply out of scope here. To go deeper, extend the plugin
-(Binder / `system_server` hooks) or pair it with a native (Zygisk) layer.
+**Native hooking (supported by the framework, not yet built here).** VMOS's
+XPose ships a native inline-hook toolchain — **Dobby** (`DobbyHook(addr,
+replace, &backup)`) + the **xDL** symbol resolver — plus the engine
+`libengcore.so` (which exports a hook wrapper, `db_hk_wrapper`). The official
+ArmCloudXposed demo builds a native module (`module2.so`) with CMake/NDK, loads
+it from `appMain` via `System.loadLibrary`, and in `JNI_OnLoad` hooks libc
+`open`/`openat` and the linker's `do_dlopen` (to catch an app-loaded `.so` and
+hook a JNI function inside it). So a plugin **can** reach native/JNI/Binder-side
+reads, Cronet, and native OAID SDKs by adding its own `.so` — this is a roadmap
+item, not an impossibility.
+
+**The only hard ceiling** is hardware-backed attestation (TEE key attestation,
+Play Integrity STRONG) — unbeatable by any software, native or otherwise.
 
 ## Ethics
 
