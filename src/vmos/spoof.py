@@ -30,6 +30,7 @@ automates the Toolbox toggle when it is not yet on.
 
 from __future__ import annotations
 
+import base64
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -238,11 +239,53 @@ def magisk_ready(shell: "PadRootShell") -> bool:
 
 def resetprop_command(props: Dict[str, str]) -> str:
     """Build a single shell command that resetprops every ``props`` entry."""
-    parts = [
-        f"{MAGISK_BIN} resetprop -n {_sh_quote(k)} {_sh_quote(v)}"
-        for k, v in props.items()
-    ]
-    return " ; ".join(parts)
+    return " ; ".join(resetprop_commands(props))
+
+
+def resetprop_commands(props: Dict[str, str]) -> List[str]:
+    """One ``resetprop -n`` command per property (for batched execution)."""
+    return [f"{MAGISK_BIN} resetprop -n {_sh_quote(k)} {_sh_quote(v)}"
+            for k, v in props.items()]
+
+
+#: The pad's async command channel truncates input at roughly 2 KB. A single
+#: command longer than that is cut mid-token and (for an unterminated quote)
+#: fails to run at all — silently applying **nothing**. Keep every batch well
+#: under the cap. Live-verified 2026-07: a 4148-byte resetprop of 50 deep build
+#: props applied ZERO props; the same props in <=1.4 KB batches applied all 50.
+ASYNC_CMD_MAX_BYTES = 1400
+
+
+def _run_batched(
+    shell: "PadRootShell",
+    commands: List[str],
+    *,
+    limit: int = ASYNC_CMD_MAX_BYTES,
+    sep: str = " ; ",
+) -> int:
+    """Run ``commands`` in the fewest ``sep``-joined batches that each stay under
+    ``limit`` bytes. Returns the number of batches sent.
+
+    Guards every large on-device command (resetprop sets, file payloads) against
+    the async_cmd input cap (:data:`ASYNC_CMD_MAX_BYTES`). A single command
+    longer than ``limit`` is still sent on its own (can't be split further).
+    """
+    batch: List[str] = []
+    size = 0
+    sent = 0
+    for cmd in commands:
+        extra = len(cmd) + (len(sep) if batch else 0)
+        if batch and size + extra > limit:
+            shell.sh(sep.join(batch))
+            sent += 1
+            batch, size = [], 0
+            extra = len(cmd)
+        batch.append(cmd)
+        size += extra
+    if batch:
+        shell.sh(sep.join(batch))
+        sent += 1
+    return sent
 
 
 def _service_script(props: Dict[str, str], android_id: Optional[str]) -> str:
@@ -270,10 +313,21 @@ def _module_prop() -> str:
 
 
 def _write_file(shell: "PadRootShell", path: str, content: str, *, mode: str = "0644") -> None:
-    """Write a file on the instance using a heredoc (root shell)."""
-    # 'EOF' quoted so the payload is written verbatim (no shell expansion).
-    shell.sh(f"mkdir -p {_sh_quote(path.rsplit('/', 1)[0])}")
-    shell.sh(f"cat > {_sh_quote(path)} <<'VMOS_EOF'\n{content}VMOS_EOF\nchmod {mode} {_sh_quote(path)}")
+    """Write a file on the instance, safe for payloads over the async_cmd cap.
+
+    The content is base64-encoded and appended in small chunks, then decoded on
+    device (``base64 -d``). This avoids both shell-quoting hazards and the input
+    truncation that a single large heredoc would hit (see :data:`ASYNC_CMD_MAX_BYTES`).
+    """
+    b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
+    parent = _sh_quote(path.rsplit("/", 1)[0])
+    p = _sh_quote(path)
+    tmp = _sh_quote(path + ".b64")
+    shell.sh(f"mkdir -p {parent}; : > {path + '.b64'}")
+    step = 800  # base64 chars per append -> ~<900 B command, well under the cap
+    for i in range(0, len(b64), step):
+        shell.sh(f"printf '%s' {_sh_quote(b64[i:i + step])} >> {path + '.b64'}")
+    shell.sh(f"base64 -d {tmp} > {p} && chmod {mode} {p} && rm -f {tmp}")
 
 
 def install_persistence(shell: "PadRootShell", profile: "DeviceProfile") -> None:
@@ -323,7 +377,9 @@ def apply_profile(
             "Magisk (Mask) -> ON, or call enable_magisk_ui()."
         )
     props = profile.build_props()
-    shell.sh(resetprop_command(props))
+    # Apply in input-cap-safe batches (a single huge resetprop command is
+    # truncated by async_cmd and silently applies nothing — see _run_batched).
+    _run_batched(shell, resetprop_commands(props))
     if set_android_id and profile.android_id:
         # NOTE: verified ineffective on VMOS real devices (settings write ignored);
         # kept for virtual images. Trust verify_profile for the real outcome.
@@ -525,7 +581,7 @@ def set_identity_props(
     to_set = {_IDENTITY_PROPS[k]: v for k, v in values.items() if v}
     if not to_set:
         return {}
-    shell.sh(" ; ".join(f"{MAGISK_BIN} resetprop -n {_sh_quote(k)} {_sh_quote(v)}" for k, v in to_set.items()))
+    _run_batched(shell, resetprop_commands(to_set))
     if persist_module:
         lines = "".join(f"ENABLED,{k},{v}\\n" for k, v in to_set.items())
         conf = f"{_MODULE_DIR}/config/custom.conf"

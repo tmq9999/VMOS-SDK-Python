@@ -72,6 +72,9 @@ backend mới **không** phải sửa schema Profile (xem phụ lục *Profile M
 - **System Applier** (xong): `resetprop` + Magisk module cho `build.*`;
   `update_sim` cho SIM/IMSI/operator; `settings` cho locale/timezone; ADI
   template cho model nền. Dính reboot, revert được.
+  - **Giới hạn input trên máy:** `async_cmd` của pad cắt input quanh mức 2 KB,
+    nên các lệnh `resetprop` và ghi file được chia batch dưới
+    `ASYNC_CMD_MAX_BYTES` (một lệnh ~4 KB sẽ âm thầm không áp gì cả).
 - **Java Hook Backend** (xong, đã verify): plugin XPose (`appMain`) nạp theo app
   qua `apmt`; ghi đè getter Java trong tiến trình **app đã scope**. Đây là thứ
   đổi IMEI/GAID/Android-ID... theo cách app đọc qua API Java. Đã verify live:

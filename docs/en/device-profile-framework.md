@@ -75,6 +75,9 @@ methods — adding a new backend never touches the Profile schema (see the
 - **System Applier** (done): `resetprop` + Magisk module for `build.*`;
   `update_sim` for SIM/IMSI/operator; `settings` for locale/timezone; ADI
   template for the base model. Reboot-persistent, reversible.
+  - **On-device input cap:** the pad's `async_cmd` truncates input near 2 KB, so
+    `resetprop` sets and file writes are sent in batches under
+    `ASYNC_CMD_MAX_BYTES` (a single ~4 KB command silently applies nothing).
 - **Java Hook Backend** (done, verified): the XPose plugin (`appMain`) loaded per
   app via `apmt`; overrides Java getters in the **scoped app's** process. This is
   what changes IMEI/GAID/Android-ID/etc. as a specific app reads them via the Java

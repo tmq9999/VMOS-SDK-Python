@@ -30,6 +30,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/{en,vi}/device-profile-framework.md` — Roadmap item **A** marked done
   (now codified as `ProfileManager`); added a *Profile Manager in code* appendix.
 
+### Fixed
+
+- **Layer-1 build props silently not applied on real devices** — `apply_profile`
+  sent the whole deep prop set (~50 props / ~4 KB) as a single `resetprop`
+  command. The pad's `async_cmd` input is capped near 2 KB, so the command was
+  truncated mid-quote and applied **nothing** (model/fingerprint stayed
+  unchanged) while smaller Layer-2 batches worked — a confusing, device-only
+  failure. `resetprop` and on-device file writes are now split into
+  input-cap-safe batches (`resetprop_commands` + `_run_batched`;
+  `ASYNC_CMD_MAX_BYTES`); `_write_file` streams payloads via chunked base64.
+  **Live-verified** on the pad: `ProfileManager.apply` flips
+  model→`Pixel 10 Pro XL`, device/board/hardware→`mustang`, fingerprint→mustang,
+  confirmed in a device-info app.
+
 ## [1.0.0] - 2026-07-24
 
 First stable release. 🎉
