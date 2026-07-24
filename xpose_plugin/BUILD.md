@@ -22,7 +22,13 @@ option below).
   `Entry.appMain` loads it via `System.loadLibrary("vmosnative")`. See
   `app/src/main/cpp/THIRD_PARTY.md` (Dobby + xDL, MIT).
 - Either **Android Studio** (easiest — bundles all of the above) or the
-  command-line tools + Gradle 8.7+.
+  command-line tools + Gradle **8.9**.
+- **Gradle 8.9 (pinned).** The repo ships `gradle/wrapper/gradle-wrapper.properties`
+  fixed to 8.9. Do **not** use Gradle 9.x: AGP 8.5.2's native (C/C++) model
+  builder calls `Project.exec(Action)`, which Gradle 9 removed — you'd get
+  `NoSuchMethodError: org.gradle.api.Project.exec` on `configure C/C++`. In
+  Android Studio set **Settings → Build Tools → Gradle → Distribution: Gradle
+  Wrapper** so it uses the pinned 8.9.
 
 ---
 
