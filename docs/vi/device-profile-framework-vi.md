@@ -23,15 +23,18 @@ VMOS Real Device
    → Base ADI (model đã thuê, vd Pixel 7 Pro)
       → Device Profile  (JSON chuẩn — nguồn sự thật duy nhất)
          → Profile Manager
-              ├── System Applier      (Tầng 1: resetprop / Magisk / update_sim / settings)
-              ├── App Hook            (Tầng 2: plugin XPose, getter Java theo app)
-              ├── System-server Hook  (Tầng 3, tùy chọn: systemMain + tiến trình telephony)
-              └── Verification        (đọc lại → so với profile → report)
+              ├── System Applier              (resetprop / Magisk / update_sim / settings)
+              ├── Java Hook Backend           (XPose appMain — getter Java trong process app)
+              ├── Native Hook Backend         (XPose .so native — Dobby + xDL; đọc native/JNI)
+              ├── Service/System Hook Backend (systemMain + tiến trình telephony; rủi ro hơn, phải PoC)
+              └── Verification                (đọc lại → so với profile → report)
 ```
 
-**Nguyên tắc:** Profile là trung tâm; hook/applier chỉ là implementation. Không
-applier nào hard-code dữ liệu danh tính — tất cả đọc từ Profile. Thêm backend mới
-mà không phải sửa Profile.
+**Nguyên tắc:** Profile là trung tâm; mỗi backend chỉ là implementation **đọc
+cùng một Profile** — không backend nào hard-code dữ liệu danh tính. Các backend
+độc lập, thêm/bớt mà không sửa Profile. Một field có thể do nhiều backend áp (vd
+`serial` do System Applier *và* Java Hook) nhưng Profile vẫn là nguồn sự thật duy
+nhất cho tất cả.
 
 ## 3. Device Profile (JSON chuẩn)
 
@@ -59,29 +62,35 @@ Mỗi field ghi rõ **tầng nào áp** và **verify ra sao**.
   Plugin **đọc profile JSON** thay cho hàng chục prop `persist.vmos.spoof.*` rời
   rạc. Một profile → mọi hook. (Prop vẫn là fallback cho scalar đơn giản.)
 
-## 4. Các applier (ba tầng)
+## 4. Các backend (implementation độc lập, chung một Profile)
 
-- **Tầng 1 — System Applier** (xong): `resetprop` + Magisk module cho `build.*`;
+- **System Applier** (xong): `resetprop` + Magisk module cho `build.*`;
   `update_sim` cho SIM/IMSI/operator; `settings` cho locale/timezone; ADI
   template cho model nền. Dính reboot, revert được.
-- **Tầng 2 — App Hook** (đang làm): plugin XPose nạp theo app qua `apmt`; ghi đè
-  getter Java trong tiến trình **app đã scope**. Đây là tầng **duy nhất** đổi
-  được IMEI/GAID/Android-ID... theo cách một app cụ thể đọc.
-- **Tầng 3 — System-server Hook** (tùy chọn, sau): `systemMain` cho **nhất quán**
-  `build`/display/feature toàn hệ. Hai lưu ý:
-  - IMEI/IMSI **không** nằm ở `system_server`; chúng ở **tiến trình telephony**
-    (`com.android.phone`). Hook tiến trình đó (một target Tầng 2, không phải
-    system-server) mới làm cả đường Binder (`service call iphonesubinfo`) nhất
-    quán — chính là bản vá cho "lỗ hổng Binder" trước đây.
-  - Hook `system_server` rủi ro hơn (crash có thể bootloop máy), nên opt-in và
-    scope hẹp.
-- **Native hook được framework hỗ trợ** (năng lực riêng, chưa build ở đây): XPose
-  của VMOS kèm **Dobby** (inline hook) + **xDL** (resolver ký hiệu) và engine
-  `libengcore.so`, minh hoạ trong demo ArmCloudXposed (hook libc `open`/`openat`
-  và `do_dlopen` của linker). Plugin có thể thêm `.so` riêng (nạp từ `appMain`)
-  để chặn **đọc native/JNI/Binder, Cronet, và SDK OAID native** — chính là đòn
-  bẩy cho các định danh không lộ ra ở tầng Java. Chỉ hardware attestation (TEE)
-  là ngoài tầm.
+- **Java Hook Backend** (xong, đã verify): plugin XPose (`appMain`) nạp theo app
+  qua `apmt`; ghi đè getter Java trong tiến trình **app đã scope**. Đây là thứ
+  đổi IMEI/GAID/Android-ID... theo cách app đọc qua API Java. Đã verify live:
+  Android ID đọc lại khớp giá trị Profile.
+- **Native Hook Backend** (framework hỗ trợ; chưa build): một `.so` native nạp từ
+  `appMain`, dùng **Dobby** (inline hook) + **xDL** (resolver) + `libengcore.so`
+  của VMOS. Với tới các đường đọc không lộ ở Java: SDK JNI/native, system
+  property đọc từ native, file `/proc` & `/sys`, thư viện nạp động, và logic nằm
+  trong `.so`.
+  - **Lưu ý (không tuyệt đối):** chỉ hook được hàm native khi **địa chỉ/symbol/
+    signature xác định được**, **ABI khớp** (arm64 trước), và **tiến trình cho
+    phép** nạp module. Symbol có thể bị strip, inline, obfuscate hoặc đổi theo
+    phiên bản — mỗi target phải kiểm chứng, không mặc định.
+- **Service/System Hook Backend** (phải research/PoC trước): `systemMain` cho
+  **nhất quán** `build`/display/feature toàn hệ (rủi ro hơn — crash
+  `system_server` có thể bootloop máy, nên opt-in + scope hẹp), và **tiến trình
+  telephony** (`com.android.phone`) cho các giá trị như IMEI/IMSI.
+  - **Lưu ý:** hook `com.android.phone` **không** tự động làm IMEI qua Binder
+    đổi. Chỉ khả thi nếu **trace đúng implementation/nguồn dữ liệu** mà Binder
+    service trả rồi hook *đúng chỗ đó* (Java hoặc native, hoặc nguồn nó đọc) —
+    hook `libc` **không** mặc định là đủ. Backend này chỉ vào roadmap chính thức
+    **sau khi có PoC pass trên một Android/ROM cụ thể**.
+
+Chỉ hardware attestation (TEE / Play Integrity STRONG) là ngoài tầm mọi backend.
 
 ## 5. Bộ máy nhất quán (giá trị sản phẩm thật sự)
 
@@ -110,21 +119,29 @@ Generator/validator phải bảo đảm:
 Profile là **JSON có version** (thân thiện git): tạo, validate, áp, export,
 import, rollback. Mỗi pad ghi lại profile+version đang áp để cả fleet audit được.
 
-## 8. Lộ trình
+## 8. Lộ trình (ưu tiên đã chốt)
 
-| Pha | Sản phẩm |
-|---|---|
-| **P1 — Profile core** | Schema JSON; mở rộng `DeviceProfile` + `validate()` + serialize; generator/validator nhất quán; plugin đọc `vmos_profile.json`; một lệnh `apply_profile(pad, profile)` bao Tầng 1 + 2 |
-| **P2 — App-layer bền hơn** | tiến trình phụ, `ClassLoader` động, hook theo signature, quản lý hook theo module |
-| **P3 — Tầng hệ thống** | `systemMain` (nhất quán build/display/feature toàn hệ) + hook tiến trình telephony (IMEI nhất quán cả Binder), cùng đọc một profile |
-| **P4 — Verification** | thành phần đọc-lại → so → report |
-| **P5 — Vòng đời & catalog** | version profile, export/import/rollback, catalog profile dựng sẵn |
+Đã xong: **P1 Profile core** (schema, `Profile`, `validate()`, generator nhất
+quán — phía SDK); **Java Hook Backend đã verify** (Android ID đọc lại khớp
+Profile, live).
+
+| Ưu tiên | Sản phẩm | Trạng thái |
+|---|---|---|
+| **A — Combined provisioning + verification** | một lệnh áp **System Applier** (danh tính build Tầng 1) **và** **Java Hook Backend** (danh tính Tầng 2) từ cùng một Profile, rồi verify **model** lẫn **Android ID** trên pad | kế tiếp |
+| **B — Native Hook Core (tối thiểu), song song** | một `.so` native: (1) **nạp thành công**, (2) **arm64 trước**, (3) wrapper **Dobby/xDL**, (4) **chỉ đọc Profile** (không hard-code), (5) tái hiện **hook demo VMOS end-to-end**, (6) có **lifecycle / log / crash-guard** | song song |
+| **C — Research đường IMEI trong `com.android.phone`** | xác định process; **trace implementation của Binder service**; xác định **nguồn** Java/native trả IMEI; **PoC trên một Android/ROM cụ thể** | sau B |
+| **D — Binder-consistent IMEI (gated)** | chỉ vào roadmap chính thức **nếu PoC ở C pass** | gated |
+
+Sau đó: vòng đời profile (version, export/import/rollback, catalog profile dựng
+sẵn); thành phần verification (đọc-lại → so → report).
 
 ## 9. Trình tự (lưu ý rủi ro)
 
-**Chứng minh Tầng 2 end-to-end trước** — một lần đổi IMEI/GAID thấy được trong app
-device-info — **trước** khi refactor lớn. Profile core (P1) chủ yếu phía SDK nên
-làm song song được, nhưng không xây framework trên một hook chưa kiểm chứng.
+Java Hook Backend đã **verify live** (Android ID). Tiến hành **A** (gộp với Tầng
+1) làm mốc kế tiếp. Dựng **B** song song nhưng coi khả năng native là **có điều
+kiện** (symbol/ABI/process — xem lưu ý Native Hook Backend). **Đừng** hứa
+Binder-consistent IMEI cho tới khi PoC **C** chứng minh trên ROM thật (**D** phụ
+thuộc vào đó).
 
 ## Phụ lục — P1 trong code (đã có)
 

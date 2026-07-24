@@ -24,15 +24,18 @@ VMOS Real Device
    → Base ADI (the rented model, e.g. Pixel 7 Pro)
       → Device Profile  (canonical JSON — the single source of truth)
          → Profile Manager
-              ├── System Applier      (Layer 1: resetprop / Magisk / update_sim / settings)
-              ├── App Hook            (Layer 2: XPose plugin, per-app Java getters)
-              ├── System-server Hook  (Layer 3, optional: systemMain + telephony process)
-              └── Verification        (read back → diff vs profile → report)
+              ├── System Applier              (resetprop / Magisk / update_sim / settings)
+              ├── Java Hook Backend           (XPose appMain — app-process Java getters)
+              ├── Native Hook Backend         (XPose native .so — Dobby + xDL; native/JNI reads)
+              ├── Service/System Hook Backend (systemMain + telephony process; higher-risk, PoC-gated)
+              └── Verification                (read back → diff vs profile → report)
 ```
 
-**Principle:** the Profile is the center; hooks/appliers are just
-implementations. No applier hard-codes identity data — they all read the Profile.
-New backends can be added without changing the Profile.
+**Principle:** the Profile is the center; every backend is just an
+implementation that **reads the same Profile** — none hard-codes identity data.
+Backends are independent and can be added/removed without changing the Profile.
+A field may be served by more than one backend (e.g. `serial` by System Applier
+*and* Java Hook); the Profile stays the single source of truth for all of them.
 
 ## 3. The Device Profile (canonical JSON)
 
@@ -61,30 +64,38 @@ Each field is annotated with **which layer applies it** and **how to verify it**
   flat `persist.vmos.spoof.*` props. One profile → every hook. (Props remain a
   supported fallback for simple scalars.)
 
-## 4. Appliers (the three layers)
+## 4. Backends (independent implementations, one shared Profile)
 
-- **Layer 1 — System Applier** (done): `resetprop` + Magisk module for `build.*`;
+- **System Applier** (done): `resetprop` + Magisk module for `build.*`;
   `update_sim` for SIM/IMSI/operator; `settings` for locale/timezone; ADI
   template for the base model. Reboot-persistent, reversible.
-- **Layer 2 — App Hook** (in progress): the XPose plugin loaded per app via
-  `apmt`; overrides Java getters in the **scoped app's** process. This is the
-  only layer that can change IMEI/GAID/Android-ID/etc. as a specific app reads
-  them.
-- **Layer 3 — System-server Hook** (optional, later): `systemMain` for
-  system-wide `build`/display/feature **consistency**. Note two realities:
-  - IMEI/IMSI are **not** in `system_server`; they live in the **telephony
-    process** (`com.android.phone`). Hooking that process (a Layer-2 target, not
-    system-server) is what makes even the Binder path (`service call
-    iphonesubinfo`) consistent — the fix for the earlier "Binder bypass" gap.
-  - Hooking `system_server` is higher-risk (a crash there can bootloop the
-    instance), so it is opt-in and narrowly scoped.
-- **Native hooks are framework-supported** (a distinct capability, not yet built
-  here): VMOS's XPose ships **Dobby** (inline hook) + **xDL** (symbol resolver)
-  and the `libengcore.so` engine, demonstrated in the ArmCloudXposed demo
-  (hooking libc `open`/`openat` and the linker's `do_dlopen`). A plugin can add a
-  native `.so` (loaded from `appMain`) to intercept **native/JNI/Binder reads,
-  Cronet, and native OAID SDKs** — the lever for identity that never surfaces in
-  Java. Only hardware attestation (TEE) stays out of reach.
+- **Java Hook Backend** (done, verified): the XPose plugin (`appMain`) loaded per
+  app via `apmt`; overrides Java getters in the **scoped app's** process. This is
+  what changes IMEI/GAID/Android-ID/etc. as a specific app reads them via the Java
+  API. Live-verified: Android ID read back matched the Profile value.
+- **Native Hook Backend** (framework-supported; not built yet): a native `.so`
+  loaded from `appMain`, using VMOS's shipped **Dobby** (inline hook) + **xDL**
+  (symbol resolver) + `libengcore.so`. Reaches reads that never surface in Java:
+  JNI/native SDKs, system properties read from native, `/proc` & `/sys` files,
+  dynamically-loaded libraries, and logic living inside `.so`.
+  - **Caveat (not absolute):** it hooks a native function only when the
+    **address/symbol/signature is resolvable**, the **ABI matches** (arm64
+    first), and the **process allows** loading the module. Symbols may be
+    stripped, inlined, obfuscated, or shift between versions — each target needs
+    verification, not assumption.
+- **Service/System Hook Backend** (research/PoC-gated): `systemMain` for
+  system-wide `build`/display/feature **consistency** (higher-risk — a crash in
+  `system_server` can bootloop the instance, so opt-in and narrowly scoped), and
+  the **telephony process** (`com.android.phone`) for values like IMEI/IMSI.
+  - **Caveat:** hooking `com.android.phone` does **not** automatically make the
+    Binder-returned IMEI change. It works only if we **trace the actual service
+    implementation / data source** the Binder path returns and hook *that*
+    (Java or native, or the source it reads) — a libc hook is **not** assumed
+    sufficient. This backend enters the official roadmap **only after a
+    proof-of-concept passes on a specific Android/ROM**.
+
+Only hardware-backed attestation (TEE / Play Integrity STRONG) is out of reach of
+every backend.
 
 ## 5. Consistency engine (the real product value)
 
@@ -115,22 +126,29 @@ Profiles are **versioned JSON** (git-friendly): create, validate, apply, export,
 import, rollback. Each pad records which profile+version is applied so a fleet is
 auditable.
 
-## 8. Roadmap
+## 8. Roadmap (agreed priority)
 
-| Phase | Deliverable |
-|---|---|
-| **P1 — Profile core** | Profile JSON schema; extend `DeviceProfile` + `validate()` + serialize; consistency generator/validator; plugin reads `vmos_profile.json`; one-call `apply_profile(pad, profile)` spanning Layer 1 + 2 |
-| **P2 — App-layer robustness** | secondary processes, dynamic `ClassLoader`, hook-by-signature, per-module hook management |
-| **P3 — System layer** | `systemMain` (system-wide build/display/feature consistency) + telephony-process hook (Binder-consistent IMEI), all reading the same profile |
-| **P4 — Verification** | read-back → diff → report component |
-| **P5 — Lifecycle & catalog** | profile versioning, export/import/rollback, a catalog of ready-made profiles |
+Done so far: **P1 Profile core** (schema, `Profile`, `validate()`, consistency
+generator — SDK-side); **Java Hook Backend verified** (Android ID read back
+matched the Profile live).
+
+| Priority | Deliverable | Status |
+|---|---|---|
+| **A — Combined provisioning + verification** | one call applies the **System Applier** (Layer-1 build identity) **and** the **Java Hook Backend** (Layer-2 identity) from one Profile, then verifies model **and** Android ID together on a pad | next |
+| **B — Native Hook Core (minimal), in parallel** | a native `.so` that (1) **loads successfully**, (2) **arm64 first**, (3) wraps **Dobby/xDL**, (4) **reads the Profile only** (no hard-coded identity), (5) reproduces the **VMOS demo hook end-to-end**, (6) has **lifecycle / logging / crash-guard** | parallel |
+| **C — Research IMEI path in `com.android.phone`** | identify the process; **trace the Binder service implementation**; identify the Java/native **source** of the returned IMEI; build a **PoC on a specific Android/ROM** | after B |
+| **D — Binder-consistent IMEI (gated)** | enters the official roadmap **only if the C PoC passes** | gated |
+
+Later: P-lifecycle (profile versioning, export/import/rollback, ready-made
+profile catalog); P-verification (read-back → diff → report component).
 
 ## 9. Sequencing (risk note)
 
-**Prove Layer 2 end-to-end first** — one live IMEI/GAID change visible in a
-device-info app — *before* the big refactor. The Profile core (P1) is mostly
-SDK-side and can proceed in parallel, but the framework should not be built on an
-unverified hook.
+Java Hook Backend is already **verified live** (Android ID). Proceed with **A**
+(combine it with Layer 1) as the immediate milestone. Build **B** in parallel but
+treat native reach as **conditional** (symbol/ABI/process — see the Native Hook
+Backend caveat). Do **not** promise Binder-consistent IMEI until the **C** PoC
+proves it on a real ROM (**D** is gated on that).
 
 ## Appendix — P1 in code (available now)
 
