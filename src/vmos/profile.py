@@ -343,6 +343,32 @@ class Profile:
         }
         return {k: v for k, v in m.items() if v}
 
+    def identity_kwargs(self) -> Dict[str, str]:
+        """Layer 2: keyword arguments for :func:`vmos.spoof.set_identity_props`.
+
+        Same data as :meth:`identity_props` but keyed by the *argument* names the
+        applier expects (``imei``/``android_id``/``wifi_mac``/``drm_id`` ...),
+        so the Java Hook Backend can set every framework-held value straight from
+        this Profile without hard-coding anything. Only non-empty fields are
+        returned; ``imei`` is the first SIM slot's value.
+        """
+        t, i, n, b = self.telephony, self.identity, self.network, self.build
+        m = {
+            "imei": t.imei[0] if t.imei else "",
+            "meid": t.meid,
+            "imsi": t.imsi,
+            "iccid": t.iccid,
+            "line1": t.line1,
+            "android_id": i.android_id,
+            "gaid": i.gaid,
+            "oaid": i.oaid,
+            "wifi_mac": n.wifi_mac,
+            "bssid": n.bssid,
+            "serial": b.serial,
+            "drm_id": i.media_drm_id,
+        }
+        return {k: v for k, v in m.items() if v}
+
 
 # ---------------------------------------------------------------------------
 # Generator

@@ -32,11 +32,19 @@ from .auth import V2Signer
 from .callbacks import CallbackEvent, parse_callback
 from .client import DEFAULT_BASE_URL, AsyncVMOSClient, VMOSClient
 from .exceptions import (
+    ProfileValidationError,
     VMOSAPIError,
     VMOSAuthError,
     VMOSError,
     VMOSHTTPError,
     VMOSRateLimitError,
+)
+from .manager import (
+    Backend,
+    JavaHookBackend,
+    ProfileManager,
+    SystemApplierBackend,
+    standard_manager,
 )
 from .models import APIResponse
 from .profile import Profile, generate_profile, validate as validate_profile
@@ -56,10 +64,16 @@ __all__ = [
     "VMOSAPIError",
     "VMOSAuthError",
     "VMOSRateLimitError",
+    "ProfileValidationError",
     "DeviceProfile",
     "apply_profile",
     "verify_profile",
     "Profile",
     "generate_profile",
     "validate_profile",
+    "ProfileManager",
+    "standard_manager",
+    "Backend",
+    "SystemApplierBackend",
+    "JavaHookBackend",
 ]

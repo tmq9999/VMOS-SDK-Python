@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Profile Manager** (`vmos.manager`) — the profile-driven orchestrator. One
+  canonical `Profile` is applied across independent, pluggable backends in a
+  single call:
+  - `ProfileManager` with `apply()` / `verify()` / `remove()`, and a
+    `standard_manager(client, pad_code, ...)` factory that wires Layer 1 then
+    Layer 2 (the combined provisioning proven live).
+  - `Backend` base class + `SystemApplierBackend` (Layer 1 build props via
+    resetprop/Magisk) and `JavaHookBackend` (Layer 2 `persist.vmos.spoof.*` +
+    XPose plugin scoping). Register custom backends with
+    `ProfileManager.register(...)` — the Profile schema never changes.
+  - Validates the Profile first and raises `ProfileValidationError` on
+    `error`-level issues (override with `validate_before_apply=False`).
+- `Profile.identity_kwargs()` — the Layer-2 identity values keyed for
+  `vmos.spoof.set_identity_props` (drives the Java Hook Backend from the Profile).
+- `examples/15_profile_manager.py` — provision a whole device from one profile
+  (`--dry-run` to preview offline, `--verify` to read back).
+
+### Changed
+
+- `docs/{en,vi}/device-profile-framework.md` — Roadmap item **A** marked done
+  (now codified as `ProfileManager`); added a *Profile Manager in code* appendix.
+
+### Fixed
+
+- **Layer-1 build props silently not applied on real devices** — `apply_profile`
+  sent the whole deep prop set (~50 props / ~4 KB) as a single `resetprop`
+  command. The pad's `async_cmd` input is capped near 2 KB, so the command was
+  truncated mid-quote and applied **nothing** (model/fingerprint stayed
+  unchanged) while smaller Layer-2 batches worked — a confusing, device-only
+  failure. `resetprop` and on-device file writes are now split into
+  input-cap-safe batches (`resetprop_commands` + `_run_batched`;
+  `ASYNC_CMD_MAX_BYTES`); `_write_file` streams payloads via chunked base64.
+  **Live-verified** on the pad: `ProfileManager.apply` flips
+  model→`Pixel 10 Pro XL`, device/board/hardware→`mustang`, fingerprint→mustang,
+  confirmed in a device-info app.
+
 ## [1.0.0] - 2026-07-24
 
 First stable release. 🎉

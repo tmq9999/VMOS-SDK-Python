@@ -45,6 +45,43 @@ def test_resetprop_command_escapes_single_quotes():
     assert "'a'\\''b'" in cmd
 
 
+def test_resetprop_commands_one_per_prop():
+    from vmos.spoof import resetprop_commands
+    cmds = resetprop_commands({"a": "1", "b": "2"})
+    assert len(cmds) == 2
+    assert cmds[0] == f"{MAGISK_BIN} resetprop -n 'a' '1'"
+
+
+def test_run_batched_stays_under_input_cap():
+    from vmos.spoof import ASYNC_CMD_MAX_BYTES, _run_batched, resetprop_commands
+
+    sent = []
+
+    class _Shell:
+        def sh(self, script):
+            sent.append(script)
+
+    # 60 props -> a single joined command would be far over the ~2 KB cap.
+    props = {f"ro.test.item{i}": f"value-{i:03d}" for i in range(60)}
+    cmds = resetprop_commands(props)
+    batches = _run_batched(_Shell(), cmds)
+    assert batches >= 2                                   # actually split
+    assert all(len(s) <= ASYNC_CMD_MAX_BYTES for s in sent)  # every batch safe
+    joined = " ; ".join(sent)
+    for c in cmds:                                        # nothing dropped
+        assert c in joined
+
+
+def test_apply_profile_batches_large_prop_set():
+    from vmos.spoof import ASYNC_CMD_MAX_BYTES
+    client = FakePadClient(_reply)
+    apply_profile(client, "ACP1", PIXEL_10_PRO_A17, persist=False)
+    # the deep prop set must never be sent as one over-cap command
+    resetprop_scripts = [s for s in client.scripts if "resetprop -n 'ro.product.model'" in s]
+    assert resetprop_scripts, "model resetprop must be present"
+    assert all(len(s) <= ASYNC_CMD_MAX_BYTES for s in client.scripts)
+
+
 class FakePadClient:
     """Minimal VMOSClient stand-in capturing async_cmd scripts and scripting replies."""
 
