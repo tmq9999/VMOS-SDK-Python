@@ -11,24 +11,34 @@ the native `libengcore.so` hook engine, exactly like the official ArmCloudXposed
 demo. Your machine needs network access to `maven.vmos.cn` at build time (offline
 option below).
 
+> **The native module is OPT-IN.** By default the build is **Java-only** — it runs
+> the verified Java Hook Backend and syncs/builds on **any** recent Gradle
+> (including 9.x). You do NOT need NDK, CMake, or a specific Gradle version for the
+> default build. Enable the native `.so` only when you want it, with the Gradle
+> property **`-PwithNative`** (Android Studio: add `withNative` in `gradle.properties`
+> or pass `-PwithNative` in the run config) — and only then do the NDK/CMake +
+> Gradle-8.9 requirements below apply.
+
 ## 0. What you need
 
+**Always:**
 - **JDK 17** (Android Gradle Plugin 8.5 requires it).
 - **Android SDK**: `platforms;android-35`, `build-tools;35.0.0`, `platform-tools`.
-- **NDK + CMake 3.22.1** (for the Native Hook Core in `app/src/main/cpp`). In
-  Android Studio: SDK Manager → SDK Tools → check **NDK (Side by side)** and
-  **CMake**. CLI: `sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"`. The build
-  produces `libvmosnative.so` (arm64-v8a + armeabi-v7a) and bundles it in the APK;
-  `Entry.appMain` loads it via `System.loadLibrary("vmosnative")`. See
-  `app/src/main/cpp/THIRD_PARTY.md` (Dobby + xDL, MIT).
-- Either **Android Studio** (easiest — bundles all of the above) or the
-  command-line tools + Gradle **8.9**.
-- **Gradle 8.9 (pinned).** The repo ships `gradle/wrapper/gradle-wrapper.properties`
-  fixed to 8.9. Do **not** use Gradle 9.x: AGP 8.5.2's native (C/C++) model
-  builder calls `Project.exec(Action)`, which Gradle 9 removed — you'd get
-  `NoSuchMethodError: org.gradle.api.Project.exec` on `configure C/C++`. In
-  Android Studio set **Settings → Build Tools → Gradle → Distribution: Gradle
-  Wrapper** so it uses the pinned 8.9.
+- **Android Studio** (easiest — bundles the above) or the command-line tools.
+
+**Only for the opt-in native build (`-PwithNative`):**
+- **NDK + CMake 3.22.1** (for the Native Hook Core in `app/src/main/cpp`). Android
+  Studio: SDK Manager → SDK Tools → check **NDK (Side by side)** + **CMake**. CLI:
+  `sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"`. Produces `libvmosnative.so`
+  (arm64-v8a + armeabi-v7a); `Entry.appMain` loads it via
+  `System.loadLibrary("vmosnative")`. See `app/src/main/cpp/THIRD_PARTY.md`
+  (Dobby + xDL, MIT).
+- **Gradle 8.9**, not 9.x. AGP 8.5.2's native (C/C++) model builder calls
+  `Project.exec(Action)`, which Gradle 9 removed — with Gradle 9 you get
+  `NoSuchMethodError: org.gradle.api.Project.exec` on `configure C/C++`. The repo
+  ships `gradle/wrapper/gradle-wrapper.properties` pinned to 8.9; in Android Studio
+  set **Settings → Build Tools → Gradle → Distribution: Gradle Wrapper**. (The
+  default Java-only build has no native step, so Gradle 9.x is fine there.)
 
 ---
 

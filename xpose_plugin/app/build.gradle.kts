@@ -3,6 +3,14 @@ plugins { id("com.android.application") }
 android {
     namespace = "com.vmos.spoof.plugin"
     compileSdk = 35
+
+    // Native Hook Core (Roadmap B) is OPT-IN. Default build = Java-only, which runs
+    // the verified Java Hook Backend and syncs on ANY recent Gradle (incl. 9.x).
+    // Enable the native .so with:  -PwithNative   (needs NDK + CMake AND an
+    // AGP/Gradle pair whose native model builder is compatible — AGP 8.5.2 requires
+    // Gradle 8.9, NOT Gradle 9.x, which removed Project.exec(Action)).
+    val withNative = project.hasProperty("withNative")
+
     defaultConfig {
         applicationId = "com.vmos.spoof.plugin"
         minSdk = 26          // Android 8.0+ (getImei introduced at API 26)
@@ -10,22 +18,21 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        // Native Hook Core (Roadmap B): builds libvmosnative.so from src/main/cpp.
-        externalNativeBuild {
-            cmake { cppFlags += "-std=c++17" }
-        }
-        ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")   // arm64 first
+        if (withNative) {
+            externalNativeBuild { cmake { cppFlags += "-std=c++17" } }
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }   // arm64 first
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    if (withNative) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
     buildTypes {
