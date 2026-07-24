@@ -15,6 +15,12 @@ option below).
 
 - **JDK 17** (Android Gradle Plugin 8.5 requires it).
 - **Android SDK**: `platforms;android-35`, `build-tools;35.0.0`, `platform-tools`.
+- **NDK + CMake 3.22.1** (for the Native Hook Core in `app/src/main/cpp`). In
+  Android Studio: SDK Manager → SDK Tools → check **NDK (Side by side)** and
+  **CMake**. CLI: `sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"`. The build
+  produces `libvmosnative.so` (arm64-v8a + armeabi-v7a) and bundles it in the APK;
+  `Entry.appMain` loads it via `System.loadLibrary("vmosnative")`. See
+  `app/src/main/cpp/THIRD_PARTY.md` (Dobby + xDL, MIT).
 - Either **Android Studio** (easiest — bundles all of the above) or the
   command-line tools + Gradle 8.7+.
 

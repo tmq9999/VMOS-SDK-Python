@@ -72,6 +72,14 @@ public class Entry {
             org.lsposed.hiddenapibypass.HiddenApiBypass.addHiddenApiExemptions("Landroid/os/SystemProperties;");
         } catch (Throwable ignored) { /* class absent / older API — plain reflection still works */ }
         try {
+            // Native Hook Core (Dobby/xDL). Guarded: if the .so is absent or fails,
+            // the Java hooks below still run — native is an independent backend.
+            System.loadLibrary("vmosnative");
+            Log.d(TAG, "native core loaded");
+        } catch (Throwable t) {
+            Log.d(TAG, "native core not loaded (Java hooks still active): " + t);
+        }
+        try {
             hookTelephony(loader);
         } catch (Throwable t) {
             Log.e(TAG, "hookTelephony failed: " + Log.getStackTraceString(t));

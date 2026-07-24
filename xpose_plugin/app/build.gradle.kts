@@ -9,10 +9,24 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+        // Native Hook Core (Roadmap B): builds libvmosnative.so from src/main/cpp.
+        externalNativeBuild {
+            cmake { cppFlags += "-std=c++17" }
+        }
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")   // arm64 first
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
     buildTypes {
         release {
