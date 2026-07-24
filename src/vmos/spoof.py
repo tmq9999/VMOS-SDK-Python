@@ -155,6 +155,14 @@ class DeviceProfile:
             props["ro.build.version.sdk"] = str(self.sdk)
         if self.security_patch:
             props["ro.build.version.security_patch"] = self.security_patch
+        if self.device:
+            # Build.BOARD / Build.HARDWARE track the device codename on Pixels
+            # (e.g. cheetah->cheetah). Keep them consistent with ro.product.*.device
+            # so an app doesn't see model=blazer but board/hardware=cheetah.
+            # (ro.board.platform is the SoC name; set it via extra_props per model.)
+            props["ro.product.board"] = self.device
+            props["ro.hardware"] = self.device
+            props["ro.boot.hardware"] = self.device
         props.update(self.extra_props)
         return props
 

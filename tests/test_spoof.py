@@ -22,6 +22,10 @@ def test_profile_expands_build_props():
     assert props["ro.product.vendor.brand"] == "google"
     assert props["ro.build.version.release"] == "17"
     assert props["ro.build.version.sdk"] == "37"
+    # Build.BOARD / Build.HARDWARE track the codename (consistency fix)
+    assert props["ro.product.board"] == "frankel"
+    assert props["ro.hardware"] == "frankel"
+    assert props["ro.boot.hardware"] == "frankel"
 
 
 def test_profile_shallow_skips_partitions():
