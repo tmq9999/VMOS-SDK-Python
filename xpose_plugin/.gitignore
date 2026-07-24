@@ -1,0 +1,11 @@
+# Android / Gradle — machine-specific build artifacts (do NOT commit)
+local.properties
+.gradle/
+build/
+app/build/
+.cxx/
+.externalNativeBuild/
+*.iml
+.idea/
+.kotlin/
+captures/
