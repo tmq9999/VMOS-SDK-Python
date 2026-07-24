@@ -66,6 +66,12 @@ Each field is annotated with **which layer applies it** and **how to verify it**
 
 ## 4. Backends (independent implementations, one shared Profile)
 
+The orchestrator and the two verified backends are implemented in `vmos.manager`
+(`ProfileManager`, `SystemApplierBackend`, `JavaHookBackend`, `standard_manager`).
+Every backend subclasses `Backend` and reads the Profile through its bridge
+methods — adding a new backend never touches the Profile schema (see the
+*Profile Manager in code* appendix).
+
 - **System Applier** (done): `resetprop` + Magisk module for `build.*`;
   `update_sim` for SIM/IMSI/operator; `settings` for locale/timezone; ADI
   template for the base model. Reboot-persistent, reversible.
@@ -134,7 +140,7 @@ matched the Profile live).
 
 | Priority | Deliverable | Status |
 |---|---|---|
-| **A — Combined provisioning + verification** | one call applies the **System Applier** (Layer-1 build identity) **and** the **Java Hook Backend** (Layer-2 identity) from one Profile, then verifies model **and** Android ID together on a pad | next |
+| **A — Combined provisioning + verification** | one call applies the **System Applier** (Layer-1 build identity) **and** the **Java Hook Backend** (Layer-2 identity) from one Profile, then verifies model **and** Android ID together on a pad | **done** — live-verified; now codified as `ProfileManager` (`vmos.manager`) |
 | **B — Native Hook Core (minimal), in parallel** | a native `.so` that (1) **loads successfully**, (2) **arm64 first**, (3) wraps **Dobby/xDL**, (4) **reads the Profile only** (no hard-coded identity), (5) reproduces the **VMOS demo hook end-to-end**, (6) has **lifecycle / logging / crash-guard** | parallel |
 | **C — Research IMEI path in `com.android.phone`** | identify the process; **trace the Binder service implementation**; identify the Java/native **source** of the returned IMEI; build a **PoC on a specific Android/ROM** | after B |
 | **D — Binder-consistent IMEI (gated)** | enters the official roadmap **only if the C PoC passes** | gated |
@@ -168,3 +174,36 @@ props = p.identity_props()        # Layer-2 persist.vmos.spoof.* map
 - Sample output: [`profiles/example-pixel10pro-vn.json`](../../profiles/example-pixel10pro-vn.json)
 - Reference data: models `pixel10pro | pixel10 | pixel10proxl`; countries `VN | US | GB` (accurate MCC/MNC).
 - Honesty: **TAC and display are unverified samples** (override for production); `validate()` warns on a generic TAC. Fingerprints are vetted (Pixel-Props).
+
+## Appendix — Profile Manager in code (available now)
+
+The orchestrator ships in `vmos.manager`. One Profile → every backend, one call:
+
+```python
+from vmos import VMOSClient, generate_profile, standard_manager
+
+profile = generate_profile("pixel10pro", "VN", "Viettel",
+                           target_apps=["com.liuzh.deviceinfo"], seed=42)
+
+with VMOSClient() as client:                       # reads VMOS_ACCESS_KEY/SECRET_KEY
+    mgr = standard_manager(client, "ACP...",       # Layer 1 + Layer 2, in order
+                           apk_url="https://host/vmos-xpose-spoof.apk")
+    mgr.apply(profile)      # validates, then drives System Applier + Java Hook
+    mgr.verify(profile)     # reads back + diffs per backend
+    # mgr.remove(profile)   # best-effort teardown (unloads named patches)
+```
+
+- **`ProfileManager`** validates the Profile first and refuses to apply one with
+  `error`-level issues (raises `ProfileValidationError`); pass
+  `validate_before_apply=False` to override.
+- **Backends are independent and pluggable.** `SystemApplierBackend` (Layer 1)
+  and `JavaHookBackend` (Layer 2) ship today; register your own `Backend`
+  subclass (e.g. a future Native Hook) with `mgr.register(...)` — the Profile
+  never changes.
+- **No hard-coded identity.** Backends read the Profile via `to_device_profile()`
+  (Layer 1) and `identity_kwargs()` / `identity_props()` (Layer 2).
+- CLI: `python examples/15_profile_manager.py --pad ACP... --model pixel10pro --country VN --operator Viettel --target-app com.liuzh.deviceinfo --apk-url https://host/p.apk --verify`
+  (add `--dry-run` to print the profile with no device).
+- Honesty: Layer-2 `verify` confirms the `persist.vmos.spoof.*` props are set; the
+  app-observed change is proven only by reading a **scoped device-info app**,
+  never `service call` / `getprop` / Play Integrity.

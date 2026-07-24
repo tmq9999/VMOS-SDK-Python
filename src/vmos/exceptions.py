@@ -14,6 +14,7 @@ __all__ = [
     "VMOSAPIError",
     "VMOSAuthError",
     "VMOSRateLimitError",
+    "ProfileValidationError",
 ]
 
 #: Business codes that indicate an authentication / signing problem.
@@ -101,3 +102,20 @@ class VMOSAuthError(VMOSAPIError):
 
 class VMOSRateLimitError(VMOSAPIError):
     """The API rejected the request due to throttling (e.g. code 1218)."""
+
+
+class ProfileValidationError(VMOSError):
+    """A :class:`vmos.profile.Profile` failed validation before being applied.
+
+    Raised by :meth:`vmos.manager.ProfileManager.apply` when the profile has
+    ``error``-level issues (an inconsistent or invalid identity should never be
+    provisioned onto a device). ``issues`` is the raw list returned by
+    :func:`vmos.profile.validate` (each item is ``{level, field, message}``);
+    ``errors`` is the ``error``-level subset.
+    """
+
+    def __init__(self, issues: Any) -> None:
+        self.issues = list(issues or [])
+        self.errors = [i for i in self.issues if i.get("level") == "error"]
+        summary = "; ".join(f"{i.get('field')}: {i.get('message')}" for i in self.errors)
+        super().__init__(f"profile failed validation ({len(self.errors)} error(s)): {summary}")

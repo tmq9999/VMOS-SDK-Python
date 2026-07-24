@@ -64,6 +64,11 @@ Mỗi field ghi rõ **tầng nào áp** và **verify ra sao**.
 
 ## 4. Các backend (implementation độc lập, chung một Profile)
 
+Orchestrator và hai backend đã verify được cài trong `vmos.manager`
+(`ProfileManager`, `SystemApplierBackend`, `JavaHookBackend`, `standard_manager`).
+Mỗi backend kế thừa `Backend` và đọc Profile qua các method cầu nối — thêm
+backend mới **không** phải sửa schema Profile (xem phụ lục *Profile Manager trong code*).
+
 - **System Applier** (xong): `resetprop` + Magisk module cho `build.*`;
   `update_sim` cho SIM/IMSI/operator; `settings` cho locale/timezone; ADI
   template cho model nền. Dính reboot, revert được.
@@ -127,7 +132,7 @@ Profile, live).
 
 | Ưu tiên | Sản phẩm | Trạng thái |
 |---|---|---|
-| **A — Combined provisioning + verification** | một lệnh áp **System Applier** (danh tính build Tầng 1) **và** **Java Hook Backend** (danh tính Tầng 2) từ cùng một Profile, rồi verify **model** lẫn **Android ID** trên pad | kế tiếp |
+| **A — Combined provisioning + verification** | một lệnh áp **System Applier** (danh tính build Tầng 1) **và** **Java Hook Backend** (danh tính Tầng 2) từ cùng một Profile, rồi verify **model** lẫn **Android ID** trên pad | **xong** — đã verify live; nay codified thành `ProfileManager` (`vmos.manager`) |
 | **B — Native Hook Core (tối thiểu), song song** | một `.so` native: (1) **nạp thành công**, (2) **arm64 trước**, (3) wrapper **Dobby/xDL**, (4) **chỉ đọc Profile** (không hard-code), (5) tái hiện **hook demo VMOS end-to-end**, (6) có **lifecycle / log / crash-guard** | song song |
 | **C — Research đường IMEI trong `com.android.phone`** | xác định process; **trace implementation của Binder service**; xác định **nguồn** Java/native trả IMEI; **PoC trên một Android/ROM cụ thể** | sau B |
 | **D — Binder-consistent IMEI (gated)** | chỉ vào roadmap chính thức **nếu PoC ở C pass** | gated |
@@ -161,3 +166,35 @@ props = p.identity_props()        # map persist.vmos.spoof.* cho Tầng 2
 - Mẫu: [`profiles/example-pixel10pro-vn.json`](../../profiles/example-pixel10pro-vn.json)
 - Dữ liệu tham chiếu: model `pixel10pro | pixel10 | pixel10proxl`; quốc gia `VN | US | GB` (MCC/MNC chính xác).
 - Trung thực: **TAC và display là mẫu chưa kiểm chứng** (thay bằng giá trị thật cho production); `validate()` cảnh báo TAC generic. Fingerprint đã vetted (Pixel-Props).
+
+## Phụ lục — Profile Manager trong code (đã có)
+
+Orchestrator nằm ở `vmos.manager`. Một Profile → mọi backend, một lệnh:
+
+```python
+from vmos import VMOSClient, generate_profile, standard_manager
+
+profile = generate_profile("pixel10pro", "VN", "Viettel",
+                           target_apps=["com.liuzh.deviceinfo"], seed=42)
+
+with VMOSClient() as client:                       # đọc VMOS_ACCESS_KEY/SECRET_KEY
+    mgr = standard_manager(client, "ACP...",       # Tầng 1 + Tầng 2, đúng thứ tự
+                           apk_url="https://host/vmos-xpose-spoof.apk")
+    mgr.apply(profile)      # validate, rồi chạy System Applier + Java Hook
+    mgr.verify(profile)     # đọc lại + so từng backend
+    # mgr.remove(profile)   # gỡ (best-effort; unload các patch theo tên)
+```
+
+- **`ProfileManager`** validate Profile trước và **từ chối** áp profile có lỗi
+  mức `error` (raise `ProfileValidationError`); truyền `validate_before_apply=False`
+  để bỏ qua.
+- **Backend độc lập, cắm được.** `SystemApplierBackend` (Tầng 1) và
+  `JavaHookBackend` (Tầng 2) có sẵn; đăng ký `Backend` của bạn (vd Native Hook
+  tương lai) bằng `mgr.register(...)` — Profile không đổi.
+- **Không hard-code danh tính.** Backend đọc Profile qua `to_device_profile()`
+  (Tầng 1) và `identity_kwargs()` / `identity_props()` (Tầng 2).
+- CLI: `python examples/15_profile_manager.py --pad ACP... --model pixel10pro --country VN --operator Viettel --target-app com.liuzh.deviceinfo --apk-url https://host/p.apk --verify`
+  (thêm `--dry-run` để in profile mà không cần thiết bị).
+- Trung thực: `verify` Tầng 2 xác nhận các prop `persist.vmos.spoof.*` đã set;
+  thay đổi mà app **thực sự thấy** chỉ được chứng minh bằng cách đọc **app
+  device-info đã scope**, không dùng `service call` / `getprop` / Play Integrity.
