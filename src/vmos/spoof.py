@@ -48,6 +48,9 @@ __all__ = [
     "remove_spoof",
     "magisk_ready",
     "enable_magisk_ui",
+    "enable_magisk_headless",
+    "query_magisk_payload_url",
+    "MAGISK_OSS_QUERY_URL",
     "lsposed_ready",
     "enable_lsposed_ui",
     "scope_lsposed_module",
@@ -235,6 +238,95 @@ def magisk_ready(shell: "PadRootShell") -> bool:
     """True when Kitsune Magisk's ``resetprop`` binary is present on the instance."""
     out = shell.sh(f"[ -x {MAGISK_BIN} ] && echo YES || echo NO")
     return "YES" in out
+
+
+#: VMOS/ArmCloud cloud-Magisk OSS payload record endpoint. Queried directly from
+#: the pad; live-verified to need **no auth** (``createBy: "no_auth"``).
+MAGISK_OSS_QUERY_URL = "https://openapi-hk.armcloud.net/openapi/open/magisk/rom/oss/record/query"
+
+#: The on-pad install script (download -> extract to workdir -> run install.sh ->
+#: verify binaries). Kept small (quiet ``tar``, tail'd output) for the async_cmd
+#: stdout cap. ``__URL__`` / ``__WORKDIR__`` are substituted before sending.
+_MAGISK_INSTALL_SH = r'''
+WORKDIR=__WORKDIR__
+PAYLOAD=$WORKDIR/magisk_payload.gz
+mkdir -p "$WORKDIR"; rm -rf "$WORKDIR/init" "$WORKDIR/magisk_env"
+curl -sk --max-time 150 -o "$PAYLOAD" "__URL__"; echo "dl_rc=$? size=$(wc -c < "$PAYLOAD" 2>/dev/null)"
+cd "$WORKDIR"; tar -xf "$PAYLOAD" 2>&1 | tail -2; echo "extract_rc=$?"; rm -f "$PAYLOAD"
+[ -f "$WORKDIR/magisk_env/install.sh" ] || { echo "NO_INSTALL_SH"; exit 1; }
+chmod 755 "$WORKDIR/magisk_env/"*.sh 2>/dev/null || true
+sh "$WORKDIR/magisk_env/install.sh" 2>&1 | tail -4
+for b in magisk64 magisk32 magiskpolicy magiskboot busybox; do [ -x /data/adb/magisk/$b ] && echo "$b=ok" || echo "$b=MISSING"; done
+echo "magisk_cloud_prop=$(getprop ro.sys.cloud.magisk)"
+echo "INSTALL_COMPLETE"
+'''
+
+
+def query_magisk_payload_url(shell: "PadRootShell", pad_code: str) -> str:
+    """Return the cloud-Magisk ``.gz`` payload URL from the OSS record.
+
+    Queried **on the pad** (which sits in ArmCloud's network) via ``curl``; the
+    endpoint needs no auth. Raises if no ``.gz`` URL is found.
+    """
+    body = '{"padCode":"%s"}' % pad_code
+    cmd = (
+        "curl -sk --max-time 30 -X POST %s -H 'Content-Type: application/json' -d %s "
+        "| grep -oE 'https://[^\"]+\\.gz' | head -1"
+        % (_sh_quote(MAGISK_OSS_QUERY_URL), _sh_quote(body))
+    )
+    out = shell.sh(cmd).strip()
+    url = out.splitlines()[0].strip() if out else ""
+    if not (url.startswith("https://") and url.endswith(".gz")):
+        raise RuntimeError(f"could not obtain a Magisk payload .gz URL (got {out[:120]!r})")
+    return url
+
+
+def enable_magisk_headless(
+    client: "VMOSClient",
+    pad_code: str,
+    *,
+    payload_url: Optional[str] = None,
+    workdir: str = "/debug_ramdisk",
+    restart: bool = False,
+) -> Dict[str, Any]:
+    """Install VMOS/ArmCloud cloud Magisk **headlessly** — no Toolbox UI, no
+    ``switchRoot``, no ``su`` (preferred over :func:`enable_magisk_ui`).
+
+    The VMOS async shell already runs as ``uid=0`` (``u:r:xu_daemon:s0``), which is
+    enough to drop the cloud-Magisk payload into ``/debug_ramdisk`` and run its
+    ``install.sh``:
+
+    1. Obtain the payload ``.gz`` URL (``payload_url`` or an on-pad OSS query).
+    2. ``curl`` it onto the pad, extract to ``workdir``, run ``magisk_env/install.sh``.
+    3. ``resetprop`` works **immediately** (verified); the Magisk daemon/Zygisk
+       (needed for modules/LSPosed) activate only after a reboot — pass
+       ``restart=True`` for that.
+
+    Live-verified 2026-07 on a genuine Pixel 7 Pro pad: 27 MB payload,
+    ``install.sh`` -> "Magisk安装成功", ``ro.sys.cloud.magisk=1``, ``resetprop``
+    functional pre-reboot. Returns a summary dict.
+    """
+    shell = PadRootShell(client, pad_code, poll_timeout=200.0)
+    if not shell.is_root():
+        raise RuntimeError("instance shell is not root — is this a real-device instance?")
+    if magisk_ready(shell):
+        return {"pad_code": pad_code, "already_installed": True}
+    # writability check (proves the no-switchRoot root can install)
+    pv = shell.sh(f"mkdir -p {workdir} && touch {workdir}/.vmos_rw && echo RW=$? && rm -f {workdir}/.vmos_rw")
+    if "RW=0" not in pv:
+        raise RuntimeError(f"{workdir} not writable by the async shell: {pv.strip()[:120]}")
+    url = payload_url or query_magisk_payload_url(shell, pad_code)
+    out = shell.sh(_MAGISK_INSTALL_SH.replace("__URL__", url).replace("__WORKDIR__", workdir))
+    installed = "INSTALL_COMPLETE" in out and "magisk64=ok" in out
+    result: Dict[str, Any] = {
+        "pad_code": pad_code, "payload_url": url, "installed": installed,
+        "magisk_cloud_prop": "1" if "magisk_cloud_prop=1" in out else "?",
+        "log_tail": out.strip()[-400:],
+    }
+    if installed and restart:
+        client.instance.restart(pad_codes=[pad_code])
+        result["restart_requested"] = True
+    return result
 
 
 def resetprop_command(props: Dict[str, str]) -> str:

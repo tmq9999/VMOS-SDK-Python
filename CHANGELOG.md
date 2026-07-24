@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Headless Magisk install** (`vmos.spoof.enable_magisk_headless`) — installs
+  ArmCloud's cloud-Magisk with **no Toolbox UI and no `switchRoot`**: queries the
+  OSS payload record (no auth), `curl`s the `.gz` onto the pad, extracts to
+  `/debug_ramdisk`, runs `magisk_env/install.sh`. `resetprop` works immediately;
+  the daemon/Zygisk activate after a reboot (`restart=True`). Helper
+  `query_magisk_payload_url` + constant `MAGISK_OSS_QUERY_URL`. **Live-verified**
+  on a genuine Pixel 7 Pro pad (27 MB payload, `ro.sys.cloud.magisk=1`,
+  `resetprop` functional pre-reboot). Docs updated (en+vi).
 - **Profile Manager** (`vmos.manager`) — the profile-driven orchestrator. One
   canonical `Profile` is applied across independent, pluggable backends in a
   single call:

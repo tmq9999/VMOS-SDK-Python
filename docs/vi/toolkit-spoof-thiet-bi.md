@@ -8,8 +8,30 @@
 2. Kitsune Magisk (`io.github.huskydg.magisk`) có `resetprop` (`/data/adb/magisk/magisk64 resetprop`) — ghi được các prop `ro.*` mà **API per-key của VMOS không đổi được** trên máy thật.
 3. Persistence: Magisk module `system.prop` + script `service.d` chạy lúc boot → spoof **dính qua reboot** (đã test reboot thật: OK).
 
-## Điều kiện tiên quyết
-**Kitsune Magisk phải được BẬT** trên máy: Toolbox → Magisk (Mask) → ON. Toolkit tự bật được qua UI automation (`enable_magisk_ui`) nếu chưa bật.
+## Điều kiện tiên quyết — Magisk (có `resetprop`)
+
+**Máy phải có Magisk** (cung cấp `resetprop`). Hai cách:
+
+1. **Cài headless (khuyến nghị, KHÔNG Toolbox UI, KHÔNG `switchRoot`)** —
+   `enable_magisk_headless(client, pad)`. Shell async của VMOS chạy sẵn
+   `uid=0` (`u:r:xu_daemon:s0`) — đủ để thả payload cloud-Magisk vào
+   `/debug_ramdisk` và chạy `install.sh`. Flow: query OSS payload (không cần
+   auth) → `curl` file `.gz` vào máy → `tar -xf` vào `/debug_ramdisk` → chạy
+   `magisk_env/install.sh`.
+2. **Toolbox UI (dự phòng)** — Toolbox → Magisk (Mask) → ON, hoặc
+   `enable_magisk_ui` (best-effort, tọa độ theo tỉ lệ).
+
+**Đã kiểm chứng thật 2026-07** (pad Pixel 7 Pro gốc): payload 27 MB,
+`install.sh` → `Magisk安装成功`, `ro.sys.cloud.magisk=1`, và **`resetprop` chạy
+được ngay** — không cần reboot để spoof build.prop. Daemon/Zygisk của Magisk
+(cần cho module/LSPosed) chỉ kích hoạt sau reboot, nên truyền `restart=True`
+nếu cần.
+
+```python
+from vmos.spoof import enable_magisk_headless
+res = enable_magisk_headless(client, "ACP...")          # không UI, không switchRoot
+# res["installed"] = True; resetprop dùng được ngay (daemon cần restart=True)
+```
 
 ## Dùng nhanh (Python)
 
@@ -57,8 +79,10 @@ python examples/12_device_spoof_toolkit.py --pad ACP... --remove
 | `apply_profile(client, pad, profile, persist=True)` | Kiểm tra root+Magisk → resetprop toàn bộ → android_id → cài persistence |
 | `verify_profile(client, pad, profile)` | Đọc `getprop` + so khớp → `{ok, checks}` |
 | `remove_spoof(client, pad)` | Xoá module + service.d (runtime reset ở lần reboot sau) |
-| `magisk_ready(shell)` | Kiểm tra Kitsune Magisk đã sẵn sàng |
-| `enable_magisk_ui(client, pad)` | Bật Magisk headless qua Toolbox UI (best-effort, tọa độ theo tỉ lệ) |
+| `magisk_ready(shell)` | Kiểm tra Magisk (`resetprop`) đã có |
+| `enable_magisk_headless(client, pad, restart=False)` | **Cài cloud Magisk KHÔNG UI / KHÔNG switchRoot** (OSS payload → `/debug_ramdisk` → `install.sh`); `resetprop` dùng được ngay |
+| `query_magisk_payload_url(shell, pad)` | Lấy URL payload `.gz` cloud-Magisk (query OSS trên pad, không auth) |
+| `enable_magisk_ui(client, pad)` | Dự phòng: bật qua Toolbox UI (best-effort, tọa độ theo tỉ lệ) |
 
 ## Kết quả kiểm chứng (live)
 

@@ -8,8 +8,30 @@
 2. Kitsune Magisk (`io.github.huskydg.magisk`) ships `resetprop` (`/data/adb/magisk/magisk64 resetprop`), which rewrites the read-only `ro.*` build props that VMOS's per-key property API **cannot** change on a real device.
 3. Persistence: a Magisk module `system.prop` + a `service.d` boot script re-apply at boot → the spoof **survives reboots** (verified with a real reboot: OK).
 
-## Prerequisite
-**Kitsune Magisk must be enabled** on the instance: Toolbox → Magisk (Mask) → ON. The toolkit can enable it headlessly via `enable_magisk_ui`.
+## Prerequisite — Magisk (with `resetprop`)
+
+**Magisk must be present** on the instance (it provides `resetprop`). Two ways:
+
+1. **Headless install (recommended, no Toolbox UI, no `switchRoot`)** —
+   `enable_magisk_headless(client, pad)`. The VMOS async shell already runs as
+   `uid=0` (`u:r:xu_daemon:s0`), which is enough to drop ArmCloud's cloud-Magisk
+   payload into `/debug_ramdisk` and run its `install.sh`. Flow: query the OSS
+   payload record (no auth) → `curl` the `.gz` onto the pad → `tar -xf` into
+   `/debug_ramdisk` → run `magisk_env/install.sh`.
+2. **Toolbox UI (fallback)** — Toolbox → Magisk (Mask) → ON, or `enable_magisk_ui`
+   (best-effort, ratio-based taps).
+
+**Live-verified 2026-07** (genuine Pixel 7 Pro pad): 27 MB payload,
+`install.sh` → `Magisk安装成功`, `ro.sys.cloud.magisk=1`, and **`resetprop` works
+immediately** — no reboot needed for build-prop spoofing. The Magisk
+**daemon/Zygisk** (needed for modules/LSPosed) activate only after a reboot, so
+pass `restart=True` if you need those.
+
+```python
+from vmos.spoof import enable_magisk_headless, magisk_ready
+res = enable_magisk_headless(client, "ACP...")          # no UI, no switchRoot
+# res["installed"] is True; resetprop is usable now (daemon needs restart=True)
+```
 
 ## Quickstart (Python)
 
@@ -50,8 +72,10 @@ python examples/12_device_spoof_toolkit.py --pad ACP... --remove
 | `apply_profile(client, pad, profile, persist=True)` | Verify root+Magisk → resetprop all props → android_id → install persistence |
 | `verify_profile(client, pad, profile)` | `getprop` read-back + compare → `{ok, checks}` |
 | `remove_spoof(client, pad)` | Remove module + service.d (runtime resets on next reboot) |
-| `magisk_ready(shell)` | Check Kitsune Magisk is present |
-| `enable_magisk_ui(client, pad)` | Headless enable via Toolbox UI (best-effort, ratio-based taps) |
+| `magisk_ready(shell)` | Check Magisk (`resetprop`) is present |
+| `enable_magisk_headless(client, pad, restart=False)` | **Install cloud Magisk with no UI / no switchRoot** (OSS payload → `/debug_ramdisk` → `install.sh`); `resetprop` usable immediately |
+| `query_magisk_payload_url(shell, pad)` | Get the cloud-Magisk `.gz` payload URL (on-pad OSS query, no auth) |
+| `enable_magisk_ui(client, pad)` | Fallback: enable via Toolbox UI (best-effort, ratio-based taps) |
 
 ## Verified result (live)
 

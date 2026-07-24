@@ -148,6 +148,44 @@ def test_verify_profile_reports_matches():
     assert result["checks"]["ro.build.version.sdk"]["match"] is True
 
 
+def _magisk_headless_reply(s):
+    if s.strip() == "id -u":
+        return "0"
+    if MAGISK_BIN in s and "-x" in s:
+        return "NO"                       # not installed yet -> proceed
+    if ".vmos_rw" in s:
+        return "RW=0"                      # /debug_ramdisk writable
+    if "record/query" in s:               # OSS payload query (no auth)
+        return "https://oss-hk.armcloud.net/prod/raw_magisk/abc123.gz"
+    if "install.sh" in s:                 # download+extract+install script
+        return ("dl_rc=0 size=27219650\nextract_rc=0\nMagisk\n"
+                "magisk64=ok\nmagisk32=ok\nmagiskpolicy=ok\nmagiskboot=ok\nbusybox=ok\n"
+                "magisk_cloud_prop=1\nINSTALL_COMPLETE")
+    return ""
+
+
+def test_enable_magisk_headless_flow():
+    from vmos.spoof import enable_magisk_headless
+    client = FakePadClient(_magisk_headless_reply)
+    res = enable_magisk_headless(client, "ACP1")
+    assert res["installed"] is True
+    assert res["payload_url"].endswith(".gz")
+    assert res["magisk_cloud_prop"] == "1"
+    joined = "\n".join(client.scripts)
+    assert "record/query" in joined            # queried the OSS payload URL
+    assert "magisk_env/install.sh" in joined    # ran the installer
+    # never used the forbidden paths
+    assert "switchRoot" not in joined and "su -c" not in joined
+
+
+def test_enable_magisk_headless_skips_if_present():
+    from vmos.spoof import enable_magisk_headless
+    client = FakePadClient(lambda s: "0" if s.strip() == "id -u"
+                           else ("YES" if (MAGISK_BIN in s and "-x" in s) else ""))
+    res = enable_magisk_headless(client, "ACP1")
+    assert res.get("already_installed") is True
+
+
 def test_apply_requires_root():
     import pytest
 
