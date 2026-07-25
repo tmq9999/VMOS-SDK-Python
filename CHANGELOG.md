@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **App-scoped `Build.*` identity spoof — GMS-safe (keeps Google Play Services /
+  Play Store GENUINE).** The XPose plugin (`androidx.app.Entry`) now spoofs the
+  static `Build.MODEL` / `MANUFACTURER` / `BRAND` / `DEVICE` / `PRODUCT` /
+  `FINGERPRINT` and `Build.VERSION.RELEASE` fields **per app**, read from
+  `persist.vmos.spoof.build.*` (only when a prop is set). `appMain` gained a
+  **denylist guard** that returns early for `com.google.android.gms` (and its
+  process packages), `com.android.vending` and `com.google.android.gsf`, so those
+  keep their real A13/SDK33 identity — a *system-wide* Pixel/Android-16/SDK-36
+  spoof crash-loops `com.google.android.gms.persistent`, so spoofing every app
+  *except* GMS/Play is the GMS-safe design (a denylist, the opposite of injecting
+  into GMS). `Build.VERSION.SDK_INT` spoofing is included but **disabled by
+  default** (app-scoped SDK skew can crash the target app; enable per-app after
+  testing). **The plugin APK must be rebuilt** (`./gradlew :app:assembleRelease`)
+  after this `Entry.java` change.
+- `vmos.spoof.set_build_props()` — set the `persist.vmos.spoof.build.*` props the
+  plugin reads (the `Build.*` counterpart of `set_identity_props`). Only non-empty
+  fields are written; `sdk_int` is accepted but a no-op until the plugin's SDK_INT
+  line is manually enabled.
+- **Denylist scoping helpers** (`vmos.spoof`): `GMS_DENYLIST` constant,
+  `list_installed_packages()` (parses `pm list packages -3` / `-s`) and
+  `app_scoped_targets()` — "all installed apps **EXCEPT** GMS/Play" (extend via
+  `extra_denylist`). `apmt` is **per-package (no wildcard)**, so each target needs
+  its own patch and **newly-installed apps require a re-run**.
+- `JavaHookBackend` now spoofs `Build.*` too (`spoof_build=True`, on by default)
+  and can auto-scope every installed app minus the denylist onto
+  `profile.runtime.target_apps` (`auto_scope_all=True`, also on `standard_manager`).
+  `Profile.build_hook_props()` / `Profile.build_hook_kwargs()` bridge the `build`
+  section to the plugin / `set_build_props`.
 - **Headless root stack — Magisk + Zygisk-Next + LSPosed, one pass**
   (`vmos.spoof.install_root_stack_headless`) — encodes the real-device-verified
   sequence (Pixel 9 Pro / Android 13; no Toolbox UI, no `switchRoot`, no `su`):
@@ -62,6 +90,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Prop-key mismatch: phone number spoof never reached the plugin** — the SDK
+  wrote `persist.vmos.spoof.line1`, but the compiled plugin reads
+  `persist.vmos.spoof.line`, so `getLine1Number()` spoofing silently did nothing.
+  `vmos.spoof._IDENTITY_PROPS` and `Profile.identity_props()` now write
+  `persist.vmos.spoof.line` (the public `line1` kwarg/`telephony.line1` field are
+  unchanged), and the plugin's `getLine1Number` hook reads the same `.line` key so
+  a rebuild stays consistent. The rest of the map was audited against the plugin's
+  reads: `android_id`/`wifi_mac`/`drm_id` already map correctly to
+  `.androidid`/`.wifimac`/`.drmid`. A test asserts the exact prop-key set.
 - **Async task-detail body format (`code=100013`)** — `padTaskDetail` /
   `fileTaskDetail` must be called with the integer-array body
   `{"taskIds":[<int>, ...]}`; the object form `{"taskIds":[{"taskId":N}]}` is

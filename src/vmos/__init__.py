@@ -49,10 +49,14 @@ from .manager import (
 from .models import APIResponse
 from .profile import Profile, generate_profile, validate as validate_profile
 from .spoof import (
+    GMS_DENYLIST,
     DeviceProfile,
+    app_scoped_targets,
     apply_profile,
     enable_magisk_headless,
     install_root_stack_headless,
+    set_build_props,
+    set_identity_props,
     verify_profile,
     verify_root_stack,
 )
@@ -78,6 +82,10 @@ __all__ = [
     "enable_magisk_headless",
     "install_root_stack_headless",
     "verify_root_stack",
+    "set_identity_props",
+    "set_build_props",
+    "app_scoped_targets",
+    "GMS_DENYLIST",
     "Profile",
     "generate_profile",
     "validate_profile",
