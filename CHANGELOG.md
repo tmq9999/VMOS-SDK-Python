@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Headless root stack — Magisk + Zygisk-Next + LSPosed, one pass**
+  (`vmos.spoof.install_root_stack_headless`) — encodes the real-device-verified
+  sequence (Pixel 9 Pro / Android 13; no Toolbox UI, no `switchRoot`, no `su`):
+  `uploadFileV3` → md5/size download wait **on the device** → `install.sh &&
+  install_modules.sh` (logs redirected) → `restart` → reboot-readiness wait
+  (tolerating code `110031`) → active-state verification. Ships reusable building
+  blocks, each independently testable: `wait_for_file_download`,
+  `stage_root_stack_install`, `verify_root_stack`, `wait_for_pad_ready`,
+  `pad_online` / `wait_for_pad_online`, `resolve_pad_code`, `coerce_task_ids`, plus
+  the `PAD_NOT_READY_CODE` and `ROOT_STACK_MODULES` constants.
 - **Headless Magisk install** (`vmos.spoof.enable_magisk_headless`) — installs
   ArmCloud's cloud-Magisk with **no Toolbox UI and no `switchRoot`**: queries the
   OSS payload record (no auth), `curl`s the `.gz` onto the pad, extracts to
@@ -35,11 +45,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `vmos.spoof.enable_magisk_headless` now also runs `install_modules.sh` (stages
+  **Zygisk-Next + LSPosed** — previously it installed Magisk only) and verifies
+  success by an on-device **state check** rather than a truncatable output marker.
+  New `install_modules=True` toggle; the download step reports a compact return
+  code + size, and the result dict gains `install_rc` / `modules_rc` / `binaries`
+  / `modules`.
+- **Credential env-var aliases** — `VMOSClient` / `AsyncVMOSClient` now also accept
+  `VMOS_ACCESS_KEY_ID` / `VMOS_SECRET_ACCESS_KEY` (the canonical `VMOS_ACCESS_KEY`
+  / `VMOS_SECRET_KEY` still take precedence), and `vmos.spoof.resolve_pad_code`
+  accepts `VMOS_PAD_CODE` / `VMOS_PADCODE` / `PADCODE`. This reconciles the SDK
+  with credential stores that inject the `*_ID` / `*_ACCESS_` / `VMOS_PADCODE`
+  names. No breaking change to existing behavior.
 - `docs/{en,vi}/device-profile-framework.md` — Roadmap item **A** marked done
   (now codified as `ProfileManager`); added a *Profile Manager in code* appendix.
 
 ### Fixed
 
+- **Async task-detail body format (`code=100013`)** — `padTaskDetail` /
+  `fileTaskDetail` must be called with the integer-array body
+  `{"taskIds":[<int>, ...]}`; the object form `{"taskIds":[{"taskId":N}]}` is
+  rejected. `PadRootShell` now normalizes ids through `coerce_task_ids`, and
+  terminal-status handling recognizes the documented failure codes
+  (`-1`/`-2`/`-3`/`-4`).
+- **`uploadFileV3` download-completion detection** — `fileTaskDetail` returns
+  `data: null` for these tasks on this tenant, so it cannot signal completion.
+  Completion is now detected by polling the file's md5/size **on the device**
+  (`wait_for_file_download`), not via `fileTaskDetail`.
+- **Truncated `taskResult` false-failures** — VMOS truncates async task output, so
+  scanning verbose installer output for an `INSTALL_COMPLETE` marker produced false
+  failures. Install and verification now redirect verbose logs to on-device files
+  and confirm success by a separate compact **state** check (`ro.sys.cloud.magisk`,
+  the five Magisk binaries, the `zygisksu` / `zygisk_lsposed` module dirs, and the
+  running `lspd` daemon).
 - **Layer-1 build props silently not applied on real devices** — `apply_profile`
   sent the whole deep prop set (~50 props / ~4 KB) as a single `resetprop`
   command. The pad's `async_cmd` input is capped near 2 KB, so the command was

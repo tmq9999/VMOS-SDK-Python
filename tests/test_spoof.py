@@ -1,12 +1,9 @@
 """Unit tests for the device-spoofing toolkit (mocked shell — no network/device)."""
 
-import httpx
-
 from vmos import DeviceProfile
 from vmos.spoof import (
     MAGISK_BIN,
     PIXEL_10_PRO_A17,
-    PadRootShell,
     apply_profile,
     resetprop_command,
     verify_profile,
@@ -148,6 +145,19 @@ def test_verify_profile_reports_matches():
     assert result["checks"]["ro.build.version.sdk"]["match"] is True
 
 
+# Compact state output emitted by the stage/install script (Bug-fix #3): every
+# Magisk binary present, both modules staged, prop set, RCs zero.
+_STAGE_OK_OUTPUT = "\n".join([
+    "INSTALL_RC=0",
+    "MODULES_RC=0",
+    "PROP=1",
+    "BIN_OK=magisk64", "BIN_OK=magisk32", "BIN_OK=magiskpolicy",
+    "BIN_OK=magiskboot", "BIN_OK=busybox",
+    "MOD_OK=zygisksu", "MOD_OK=zygisk_lsposed",
+    "STAGE_DONE",
+])
+
+
 def _magisk_headless_reply(s):
     if s.strip() == "id -u":
         return "0"
@@ -157,10 +167,10 @@ def _magisk_headless_reply(s):
         return "RW=0"                      # /debug_ramdisk writable
     if "record/query" in s:               # OSS payload query (no auth)
         return "https://oss-hk.armcloud.net/prod/raw_magisk/abc123.gz"
-    if "install.sh" in s:                 # download+extract+install script
-        return ("dl_rc=0 size=27219650\nextract_rc=0\nMagisk\n"
-                "magisk64=ok\nmagisk32=ok\nmagiskpolicy=ok\nmagiskboot=ok\nbusybox=ok\n"
-                "magisk_cloud_prop=1\nINSTALL_COMPLETE")
+    if "DL_RC" in s:                       # compact curl download script
+        return "DL_RC=0 SIZE=27219650"
+    if "magisk_env/install.sh" in s:      # extract + install (+ modules) stage
+        return _STAGE_OK_OUTPUT
     return ""
 
 
@@ -171,9 +181,13 @@ def test_enable_magisk_headless_flow():
     assert res["installed"] is True
     assert res["payload_url"].endswith(".gz")
     assert res["magisk_cloud_prop"] == "1"
+    # GAP fix: install_modules.sh ran and staged BOTH Zygisk-Next + LSPosed
+    assert res["modules"] == {"zygisksu": True, "zygisk_lsposed": True}
+    assert res["install_rc"] == 0 and res["modules_rc"] == 0
     joined = "\n".join(client.scripts)
     assert "record/query" in joined            # queried the OSS payload URL
     assert "magisk_env/install.sh" in joined    # ran the installer
+    assert "magisk_env/install_modules.sh" in joined  # ran the modules installer
     # never used the forbidden paths
     assert "switchRoot" not in joined and "su -c" not in joined
 

@@ -31,10 +31,13 @@ automates the Toolbox toggle when it is not yet on.
 from __future__ import annotations
 
 import base64
+import os
 import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
+
+from .exceptions import VMOSAPIError
 
 if TYPE_CHECKING:  # pragma: no cover
     from .client import VMOSClient
@@ -61,6 +64,18 @@ __all__ = [
     "PIXEL_10_PRO_A17",
     "PIXEL_10_A17",
     "PIXEL_10_PRO_XL_A17",
+    # Headless root-stack (Magisk + Zygisk-Next + LSPosed) — verified sequence.
+    "install_root_stack_headless",
+    "stage_root_stack_install",
+    "verify_root_stack",
+    "wait_for_file_download",
+    "wait_for_pad_ready",
+    "pad_online",
+    "wait_for_pad_online",
+    "resolve_pad_code",
+    "coerce_task_ids",
+    "PAD_NOT_READY_CODE",
+    "ROOT_STACK_MODULES",
 ]
 
 # ---------------------------------------------------------------------------
@@ -108,6 +123,50 @@ _PRODUCT_FIELDS = ("brand", "manufacturer", "model", "device", "name")
 def _sh_quote(value: str) -> str:
     """Single-quote a value for POSIX sh (safe for spaces, slashes, colons)."""
     return "'" + str(value).replace("'", "'\\''") + "'"
+
+
+def coerce_task_ids(task_ids: Any) -> List[int]:
+    """Normalize a task-id container to a flat list of **integers**.
+
+    VMOS's ``padTaskDetail`` / ``fileTaskDetail`` accept **only** the integer-array
+    body ``{"taskIds":[<int>, ...]}``. The object form
+    ``{"taskIds":[{"taskId":N}]}`` is rejected with ``code=100013``
+    (参数类型或格式错误) — a real-device-verified gotcha. This coerces the shapes
+    callers commonly produce (a bare int, a list of ints, or a list of
+    ``{"taskId": N}`` dicts) into the accepted integer array, so every task-detail
+    call in this module is submitted in the correct format.
+    """
+    if task_ids is None:
+        return []
+    if isinstance(task_ids, (str, bytes, int)) or not isinstance(task_ids, (list, tuple, set)):
+        task_ids = [task_ids]
+    out: List[int] = []
+    for item in task_ids:
+        if isinstance(item, dict):
+            item = item.get("taskId")
+        if item is None:
+            continue
+        out.append(int(item))
+    return out
+
+
+#: VMOS async-task status enum. ``1`` pending, ``2`` running, ``3`` complete;
+#: negatives are failures (``-1`` all-failed, ``-2`` partial, ``-3`` cancelled,
+#: ``-4`` timeout). ``4``/``5`` are tolerated as terminal for older image variants.
+def _task_terminal(status: Any) -> bool:
+    """True when an async task has reached a terminal state (success or failure)."""
+    if status == 3 or status in (4, 5):
+        return True
+    return isinstance(status, int) and status < 0
+
+
+#: Business code returned by ``asyncCmd`` while an instance is still rebooting /
+#: not yet ready (``实例状态未就绪``). Tolerated (retried) by :func:`wait_for_pad_ready`.
+PAD_NOT_READY_CODE = 110031
+
+#: On-device Magisk module directory ids installed by ``install_modules.sh``:
+#: ``zygisksu`` = Zygisk-Next, ``zygisk_lsposed`` = LSPosed (JingMatrix fork).
+ROOT_STACK_MODULES = ("zygisksu", "zygisk_lsposed")
 
 
 @dataclass
@@ -211,23 +270,36 @@ class PadRootShell:
     returns the command's stdout/stderr text.
     """
 
-    def __init__(self, client: "VMOSClient", pad_code: str, *, poll_timeout: float = 60.0) -> None:
+    def __init__(
+        self,
+        client: "VMOSClient",
+        pad_code: str,
+        *,
+        poll_timeout: float = 60.0,
+        poll_interval: float = 2.0,
+    ) -> None:
         self._client = client
         self.pad_code = pad_code
         self.poll_timeout = poll_timeout
+        self.poll_interval = poll_interval
 
     def sh(self, script: str) -> str:
-        """Execute ``script`` in the instance's root shell; return its output."""
+        """Execute ``script`` in the instance's root shell; return its output.
+
+        Polls ``padTaskDetail`` with the integer-array body form
+        (``{"taskIds":[<int>]}``) required by the gateway — the object form is
+        rejected with ``code=100013`` (see :func:`coerce_task_ids`).
+        """
         resp = self._client.instance.async_cmd(pad_codes=[self.pad_code], script_content=script)
         task_id = resp[0].get("taskId") if isinstance(resp, list) and resp else None
         if task_id is None:
             raise RuntimeError(f"async_cmd did not return a taskId: {resp!r}")
         deadline = time.time() + self.poll_timeout
         while time.time() < deadline:
-            info = self._client.tasks.pad_task_detail(task_ids=[task_id])[0]
-            if info.get("taskStatus") in (3, -1, 4, 5):
+            info = self._client.tasks.pad_task_detail(task_ids=coerce_task_ids(task_id))[0]
+            if _task_terminal(info.get("taskStatus")):
                 return (info.get("taskResult") or info.get("errorMsg") or "").strip()
-            time.sleep(2)
+            time.sleep(self.poll_interval)
         raise TimeoutError(f"command did not finish within {self.poll_timeout}s: {script[:60]!r}")
 
     def is_root(self) -> bool:
@@ -244,22 +316,17 @@ def magisk_ready(shell: "PadRootShell") -> bool:
 #: the pad; live-verified to need **no auth** (``createBy: "no_auth"``).
 MAGISK_OSS_QUERY_URL = "https://openapi-hk.armcloud.net/openapi/open/magisk/rom/oss/record/query"
 
-#: The on-pad install script (download -> extract to workdir -> run install.sh ->
-#: verify binaries). Kept small (quiet ``tar``, tail'd output) for the async_cmd
-#: stdout cap. ``__URL__`` / ``__WORKDIR__`` are substituted before sending.
-_MAGISK_INSTALL_SH = r'''
-WORKDIR=__WORKDIR__
-PAYLOAD=$WORKDIR/magisk_payload.gz
-mkdir -p "$WORKDIR"; rm -rf "$WORKDIR/init" "$WORKDIR/magisk_env"
-curl -sk --max-time 150 -o "$PAYLOAD" "__URL__"; echo "dl_rc=$? size=$(wc -c < "$PAYLOAD" 2>/dev/null)"
-cd "$WORKDIR"; tar -xf "$PAYLOAD" 2>&1 | tail -2; echo "extract_rc=$?"; rm -f "$PAYLOAD"
-[ -f "$WORKDIR/magisk_env/install.sh" ] || { echo "NO_INSTALL_SH"; exit 1; }
-chmod 755 "$WORKDIR/magisk_env/"*.sh 2>/dev/null || true
-sh "$WORKDIR/magisk_env/install.sh" 2>&1 | tail -4
-for b in magisk64 magisk32 magiskpolicy magiskboot busybox; do [ -x /data/adb/magisk/$b ] && echo "$b=ok" || echo "$b=MISSING"; done
-echo "magisk_cloud_prop=$(getprop ro.sys.cloud.magisk)"
-echo "INSTALL_COMPLETE"
-'''
+#: Compact on-pad **download** script for :func:`enable_magisk_headless` — ``curl``
+#: the payload ``.gz`` into ``$WORKDIR`` and report only the return code + size (the
+#: verbose transfer log is discarded to stay under the async_cmd output cap). The
+#: extract/install steps run separately via :func:`stage_root_stack_install` so the
+#: two entry points (curl download vs. ``uploadFileV3``) share one install path.
+#: ``__URL__`` / ``__WORKDIR__`` are substituted before sending.
+_MAGISK_DOWNLOAD_SH = (
+    'WORKDIR=__WORKDIR__; mkdir -p "$WORKDIR"; '
+    'curl -sk --max-time 180 -o "$WORKDIR/magisk_payload.gz" "__URL__" >/dev/null 2>&1; '
+    'echo "DL_RC=$? SIZE=$(wc -c < "$WORKDIR/magisk_payload.gz" 2>/dev/null)"'
+)
 
 
 def query_magisk_payload_url(shell: "PadRootShell", pad_code: str) -> str:
@@ -288,23 +355,28 @@ def enable_magisk_headless(
     payload_url: Optional[str] = None,
     workdir: str = "/debug_ramdisk",
     restart: bool = False,
+    install_modules: bool = True,
 ) -> Dict[str, Any]:
-    """Install VMOS/ArmCloud cloud Magisk **headlessly** — no Toolbox UI, no
-    ``switchRoot``, no ``su`` (preferred over :func:`enable_magisk_ui`).
+    """Install cloud Magisk (+ Zygisk-Next + LSPosed) **headlessly** via an on-pad
+    ``curl`` download — no Toolbox UI, no ``switchRoot``, no ``su``.
+
+    This is the ``curl``-download variant. For the full real-device-verified flow
+    (``uploadFileV3`` download + md5 wait + restart + active-state verification)
+    prefer :func:`install_root_stack_headless`.
 
     The VMOS async shell already runs as ``uid=0`` (``u:r:xu_daemon:s0``), which is
-    enough to drop the cloud-Magisk payload into ``/debug_ramdisk`` and run its
-    ``install.sh``:
+    enough to drop the cloud-Magisk payload into ``workdir`` and install it:
 
     1. Obtain the payload ``.gz`` URL (``payload_url`` or an on-pad OSS query).
-    2. ``curl`` it onto the pad, extract to ``workdir``, run ``magisk_env/install.sh``.
-    3. ``resetprop`` works **immediately** (verified); the Magisk daemon/Zygisk
-       (needed for modules/LSPosed) activate only after a reboot — pass
-       ``restart=True`` for that.
+    2. ``curl`` it onto the pad.
+    3. Extract to ``workdir`` and run ``install.sh`` **and** (``install_modules=True``,
+       the default) ``install_modules.sh`` — the latter stages Zygisk-Next +
+       LSPosed. Success is verified by an on-device **state check** (Magisk prop,
+       binaries, module dirs), not by parsing the truncatable task output.
+    4. ``resetprop`` works **immediately**; the Magisk daemon / Zygisk / LSPosed
+       activate only after a reboot — pass ``restart=True`` for that.
 
-    Live-verified 2026-07 on a genuine Pixel 7 Pro pad: 27 MB payload,
-    ``install.sh`` -> "Magisk安装成功", ``ro.sys.cloud.magisk=1``, ``resetprop``
-    functional pre-reboot. Returns a summary dict.
+    Returns a summary dict (``installed`` is the overall state-verified result).
     """
     shell = PadRootShell(client, pad_code, poll_timeout=200.0)
     if not shell.is_root():
@@ -316,16 +388,495 @@ def enable_magisk_headless(
     if "RW=0" not in pv:
         raise RuntimeError(f"{workdir} not writable by the async shell: {pv.strip()[:120]}")
     url = payload_url or query_magisk_payload_url(shell, pad_code)
-    out = shell.sh(_MAGISK_INSTALL_SH.replace("__URL__", url).replace("__WORKDIR__", workdir))
-    installed = "INSTALL_COMPLETE" in out and "magisk64=ok" in out
+    # 1-2. Download the payload onto the pad (compact output).
+    dl = shell.sh(_MAGISK_DOWNLOAD_SH.replace("__URL__", url).replace("__WORKDIR__", workdir))
+    if "DL_RC=0" not in dl:
+        raise RuntimeError(f"payload download failed: {dl.strip()[:160]}")
+    # 3. Extract + install (+ modules); verify by on-device state (Bug-fix #3 + GAP fix).
+    install = stage_root_stack_install(
+        shell,
+        payload_path=workdir.rstrip("/") + "/magisk_payload.gz",
+        workdir=workdir,
+        install_modules=install_modules,
+    )
     result: Dict[str, Any] = {
-        "pad_code": pad_code, "payload_url": url, "installed": installed,
-        "magisk_cloud_prop": "1" if "magisk_cloud_prop=1" in out else "?",
-        "log_tail": out.strip()[-400:],
+        "pad_code": pad_code,
+        "payload_url": url,
+        "installed": install["ok"],
+        "magisk_cloud_prop": install["magisk_prop"] or "?",
+        "install_rc": install["install_rc"],
+        "modules_rc": install["modules_rc"],
+        "binaries": install["binaries"],
+        "modules": install["modules"],
+        "log_tail": install["log_tail"],
     }
-    if installed and restart:
+    if install["ok"] and restart:
         client.instance.restart(pad_codes=[pad_code])
         result["restart_requested"] = True
+    return result
+
+
+# --------------------------------------------------------------------------- #
+# Headless root-stack (Magisk + Zygisk-Next + LSPosed) — real-device-verified.
+#
+# The known-good sequence (P2-ARCH-001 / P4-DEV-001), encoded in
+# :func:`install_root_stack_headless`, avoids three real-device-verified traps:
+#
+#   * Bug #1 — task polling MUST use the integer-array body {"taskIds":[<int>]}
+#     (see :func:`coerce_task_ids`); the object form returns code=100013.
+#   * Bug #2 — fileTaskDetail returns data:null for uploadFileV3 tasks on this
+#     tenant, so completion is detected by polling the file's md5/size ON the
+#     device (:func:`wait_for_file_download`).
+#   * Bug #3 — VMOS truncates async task output, so install success is verified by
+#     a separate compact **state** check (:func:`stage_root_stack_install` /
+#     :func:`verify_root_stack`), not by parsing verbose install output.
+# --------------------------------------------------------------------------- #
+
+def _kv(out: str, key: str) -> str:
+    """Return the value of the first ``KEY=value`` line in ``out`` (or "")."""
+    prefix = key + "="
+    for line in out.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            return stripped[len(prefix):].strip()
+    return ""
+
+
+def _download_probe_script(remote_path: str) -> str:
+    """Compact on-device probe: emit ``SIZE=`` and ``MD5=`` for ``remote_path``."""
+    path = _sh_quote(remote_path)
+    return (
+        f'f={path}; '
+        'if [ -s "$f" ]; then '
+        'echo "SIZE=$(wc -c < "$f" 2>/dev/null)"; '
+        "echo \"MD5=$(md5sum \"$f\" 2>/dev/null | cut -d' ' -f1)\"; "
+        'else echo "SIZE=0"; echo "MD5="; fi'
+    )
+
+
+def _parse_download_probe(out: str) -> "tuple":
+    size_text = _kv(out, "SIZE")
+    try:
+        size = int(size_text or 0)
+    except ValueError:
+        size = 0
+    return size, _kv(out, "MD5")
+
+
+def wait_for_file_download(
+    shell: "PadRootShell",
+    remote_path: str,
+    *,
+    expected_md5: Optional[str] = None,
+    expected_size: Optional[int] = None,
+    timeout: float = 240.0,
+    interval: float = 5.0,
+    stable_polls: int = 2,
+) -> Dict[str, Any]:
+    """Wait until ``remote_path`` has finished downloading **on the device**.
+
+    Bug-fix #2: ``uploadFileV3`` downloads are asynchronous (~tens of seconds for
+    the ~27 MB payload) and ``fileTaskDetail`` returns ``data: null`` for these
+    tasks on this tenant — so it cannot signal completion. Instead this polls the
+    file directly via ``async_cmd``:
+
+    * if ``expected_md5`` is given → ready when the on-device ``md5sum`` matches;
+    * else if ``expected_size`` is given → ready when the byte size matches and is
+      stable across ``stable_polls`` consecutive polls;
+    * else → ready when the size is non-zero and stable across ``stable_polls`` polls.
+
+    Returns ``{"ready", "size", "md5", "polls", "detail"}``; never raises on a
+    not-yet-ready file (returns ``ready=False`` at timeout).
+    """
+    want_md5 = expected_md5.lower() if expected_md5 else None
+    script = _download_probe_script(remote_path)
+    deadline = time.time() + timeout
+    last_size = -1
+    stable = 0
+    size = 0
+    md5 = ""
+    polls = 0
+    while time.time() < deadline:
+        polls += 1
+        size, md5 = _parse_download_probe(shell.sh(script))
+        if want_md5 is not None:
+            if md5 and md5.lower() == want_md5:
+                return {"ready": True, "size": size, "md5": md5, "polls": polls, "detail": "md5-match"}
+        else:
+            if size > 0 and size == last_size:
+                stable += 1
+                if (expected_size is None or size == expected_size) and stable >= stable_polls:
+                    return {"ready": True, "size": size, "md5": md5, "polls": polls, "detail": "size-stable"}
+            else:
+                stable = 0
+        last_size = size
+        time.sleep(interval)
+    return {"ready": False, "size": size, "md5": md5, "polls": polls, "detail": "timeout"}
+
+
+def _stage_install_script(payload_path: str, workdir: str, install_modules: bool) -> str:
+    """Build the compact extract+install script (Bug-fix #3: verify by state).
+
+    Verbose ``install.sh`` / ``install_modules.sh`` output is redirected to
+    on-device log files (VMOS truncates ``taskResult``, so scanning verbose output
+    for a completion marker yields false failures). Success is proven by the
+    compact state lines emitted at the end. ``install.sh`` sets
+    ``ro.sys.cloud.magisk=1`` and installs Magisk to ``/data/adb``;
+    ``install_modules.sh`` installs Zygisk-Next + LSPosed (guarded by the prop).
+    """
+    payload = _sh_quote(payload_path)
+    wd = _sh_quote(workdir)
+    lines = [
+        "set -u",
+        f"WORKDIR={wd}",
+        f"PAYLOAD={payload}",
+        'cd "$WORKDIR" 2>/dev/null || { echo NO_WORKDIR; exit 91; }',
+        'test -s "$PAYLOAD" || { echo NO_PAYLOAD; exit 90; }',
+        "rm -rf init magisk_env",
+        'tar -xf "$PAYLOAD" > "$WORKDIR/extract.log" 2>&1 || { echo EXTRACT_FAIL; tail -3 "$WORKDIR/extract.log"; exit 92; }',
+        "test -f magisk_env/install.sh || { echo NO_INSTALL_SH; exit 93; }",
+        "chmod 755 magisk_env/*.sh 2>/dev/null",
+        'sh magisk_env/install.sh > "$WORKDIR/install.log" 2>&1; echo "INSTALL_RC=$?"',
+    ]
+    if install_modules:
+        lines.append('sh magisk_env/install_modules.sh > "$WORKDIR/modules.log" 2>&1; echo "MODULES_RC=$?"')
+    lines.append('echo "PROP=$(getprop ro.sys.cloud.magisk)"')
+    lines.append(
+        "for f in magisk64 magisk32 magiskpolicy magiskboot busybox; do "
+        '[ -x /data/adb/magisk/$f ] && echo "BIN_OK=$f" || echo "BIN_MISS=$f"; done'
+    )
+    if install_modules:
+        lines.append(
+            "for m in zygisksu zygisk_lsposed; do "
+            '[ -e /data/adb/modules/$m ] && echo "MOD_OK=$m" || echo "MOD_MISS=$m"; done'
+        )
+    lines.append("echo STAGE_DONE")
+    return "\n".join(lines) + "\n"
+
+
+def stage_root_stack_install(
+    shell: "PadRootShell",
+    *,
+    payload_path: str = "/sdcard/Download/magisk_payload.gz",
+    workdir: str = "/debug_ramdisk",
+    install_modules: bool = True,
+) -> Dict[str, Any]:
+    """Extract the payload and run ``install.sh`` (+ ``install_modules.sh``) on device.
+
+    Bug-fix #3: verbose installer output is redirected to on-device logs and
+    success is verified by a **separate compact state check** — the Magisk prop
+    (``ro.sys.cloud.magisk``), the five Magisk binaries under ``/data/adb/magisk``,
+    and the Zygisk-Next / LSPosed module dirs under ``/data/adb/modules`` — rather
+    than by parsing the truncatable ``taskResult`` for a marker.
+
+    Returns ``{"ok", "install_rc", "modules_rc", "magisk_prop", "binaries",
+    "modules", "log_tail"}``.
+    """
+    out = shell.sh(_stage_install_script(payload_path, workdir, install_modules))
+
+    def _rc(marker: str) -> Optional[int]:
+        text = _kv(out, marker)
+        if not text:
+            return None
+        try:
+            return int(text)
+        except ValueError:
+            return None
+
+    prop = _kv(out, "PROP")
+    binaries = {b: (f"BIN_OK={b}" in out) for b in ("magisk64", "magisk32", "magiskpolicy", "magiskboot", "busybox")}
+    modules = {m: (f"MOD_OK={m}" in out) for m in ROOT_STACK_MODULES}
+    install_rc = _rc("INSTALL_RC")
+    modules_rc = _rc("MODULES_RC") if install_modules else None
+    ok = (
+        "STAGE_DONE" in out
+        and install_rc == 0
+        and prop == "1"
+        and all(binaries.values())
+        and (not install_modules or (modules_rc == 0 and all(modules.values())))
+    )
+    return {
+        "ok": ok,
+        "install_rc": install_rc,
+        "modules_rc": modules_rc,
+        "magisk_prop": prop,
+        "binaries": binaries,
+        "modules": modules,
+        "log_tail": out.strip()[-600:],
+    }
+
+
+def _verify_script() -> str:
+    """Compact post-reboot verification script (fits the async_cmd byte cap)."""
+    return (
+        'echo "PROP=$(getprop ro.sys.cloud.magisk)"\n'
+        'echo "MAGISKVER=$(/data/adb/magisk/magisk64 -v 2>/dev/null || echo NONE)"\n'
+        'echo "BOOT=$(getprop sys.boot_completed)"\n'
+        '(ps -A 2>/dev/null || ps 2>/dev/null) | grep -w lspd >/dev/null 2>&1 && echo "LSPD=running" || echo "LSPD=absent"\n'
+        '(ps -A 2>/dev/null || ps 2>/dev/null) | grep -q "zn-nsdaemon" && echo "ZN=running" || echo "ZN=absent"\n'
+        "for m in zygisksu zygisk_lsposed; do "
+        "if [ -e /data/adb/modules/$m ] && [ ! -f /data/adb/modules/$m/disable ] "
+        "&& [ ! -f /data/adb/modules/$m/remove ]; then echo \"MOD_ENABLED=$m\"; "
+        'else echo "MOD_OFF=$m"; fi; done\n'
+        "echo VERIFY_DONE\n"
+    )
+
+
+def verify_root_stack(shell: "PadRootShell") -> Dict[str, Any]:
+    """Verify (post-reboot) that Magisk + Zygisk-Next + LSPosed are truly **active**.
+
+    Gates (all required for ``ok``):
+
+    1. ``ro.sys.cloud.magisk == 1`` (persists across reboot — confirmed) and
+       ``magisk64 -v`` returns a version.
+    2. Zygisk-Next module enabled (``/data/adb/modules/zygisksu`` present, no
+       ``disable``/``remove`` flag).
+    3. LSPosed module enabled (``/data/adb/modules/zygisk_lsposed``).
+    4. The ``lspd`` daemon is running (``ps -A | grep -w lspd``) — the decisive
+       "LSPosed is ON" signal; a running ``lspd`` can only be forked once Zygisk
+       loaded LSPosed into zygote, so it transitively proves Zygisk-Next is active.
+
+    Returns a dict of gate results plus the trimmed raw output.
+    """
+    out = shell.sh(_verify_script())
+    prop = _kv(out, "PROP")
+    magisk_ver = _kv(out, "MAGISKVER")
+    modules_enabled = {m: (f"MOD_ENABLED={m}" in out) for m in ROOT_STACK_MODULES}
+    lspd_running = "LSPD=running" in out
+    zygisk_next_running = "ZN=running" in out
+    magisk_active = prop == "1" and bool(magisk_ver) and magisk_ver != "NONE"
+    ok = (
+        magisk_active
+        and lspd_running
+        and modules_enabled["zygisksu"]
+        and modules_enabled["zygisk_lsposed"]
+    )
+    return {
+        "ok": ok,
+        "magisk_active": magisk_active,
+        "magisk_prop": prop,
+        "magisk_version": magisk_ver,
+        "lspd_running": lspd_running,
+        "zygisk_next_running": zygisk_next_running,
+        "modules_enabled": modules_enabled,
+        "boot_completed": _kv(out, "BOOT"),
+        "raw": out.strip()[-600:],
+    }
+
+
+def _iter_pad_records(value: Any) -> Iterable[Dict[str, Any]]:
+    """Yield pad-record dicts (those carrying ``padCode``/``*Status``) from a response."""
+    if isinstance(value, dict):
+        if "cvmStatus" in value or "vmStatus" in value or "padCode" in value:
+            yield value
+        for nested in value.values():
+            yield from _iter_pad_records(nested)
+    elif isinstance(value, (list, tuple)):
+        for nested in value:
+            yield from _iter_pad_records(nested)
+
+
+def pad_online(client: "VMOSClient", pad_code: str) -> bool:
+    """True when ``pad_code`` reports online in ``userPadList``.
+
+    Uses the **verified working** body form ``{"padCodes":[<str>]}`` (plural key,
+    array value), passed via ``**extra`` because the generated wrapper exposes only
+    singular ``padCode`` (the external harness's ``{"padCode":[...]}`` form is
+    wrong). Online = ``cvmStatus == 100`` (tenant-observed) OR ``vmStatus == 1``
+    (documented); both are accepted.
+    """
+    data = client.phone.user_pad_list(padCodes=[pad_code])
+    for record in _iter_pad_records(data):
+        code = str(record.get("padCode") or record.get("pad_code") or "")
+        if code and code != pad_code:
+            continue
+        for field_name, online_value in (("cvmStatus", 100), ("vmStatus", 1)):
+            raw = record.get(field_name)
+            if raw is None:
+                continue
+            try:
+                if int(raw) == online_value:
+                    return True
+            except (TypeError, ValueError):
+                continue
+    return False
+
+
+def wait_for_pad_online(
+    client: "VMOSClient",
+    pad_code: str,
+    *,
+    timeout: float = 300.0,
+    interval: float = 5.0,
+) -> bool:
+    """Poll :func:`pad_online` until the instance is online or ``timeout`` elapses."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if pad_online(client, pad_code):
+            return True
+        time.sleep(interval)
+    return pad_online(client, pad_code)
+
+
+def wait_for_pad_ready(
+    client: "VMOSClient",
+    pad_code: str,
+    *,
+    timeout: float = 420.0,
+    interval: float = 10.0,
+    probe: str = "echo READY_OK",
+    probe_timeout: float = 40.0,
+) -> Dict[str, Any]:
+    """Wait for a (re)booting instance to accept ``async_cmd`` again.
+
+    After :func:`restart`, ``async_cmd`` raises :class:`VMOSAPIError` with code
+    ``110031`` (``实例状态未就绪``) until the instance is ready. This tolerates that
+    code (and transient transport/timeout errors), retrying the probe until it runs
+    successfully. Returns ``{"ready", "elapsed", "attempts", "detail"}``; it does
+    not raise for the tolerated not-ready condition (other API errors propagate).
+    """
+    shell = PadRootShell(client, pad_code, poll_timeout=probe_timeout)
+    start = time.time()
+    deadline = start + timeout
+    attempts = 0
+    detail = ""
+    while time.time() < deadline:
+        attempts += 1
+        try:
+            out = shell.sh(probe)
+            if "READY_OK" in out:
+                return {"ready": True, "elapsed": round(time.time() - start, 1),
+                        "attempts": attempts, "detail": out.strip()[:120]}
+            detail = out.strip()[:120]
+        except VMOSAPIError as exc:
+            if getattr(exc, "code", None) != PAD_NOT_READY_CODE:
+                raise
+            detail = f"{PAD_NOT_READY_CODE} {exc.msg}"[:120]
+        except (TimeoutError, RuntimeError) as exc:
+            detail = str(exc)[:120]
+        time.sleep(interval)
+    return {"ready": False, "elapsed": round(time.time() - start, 1),
+            "attempts": attempts, "detail": detail}
+
+
+#: Environment variables consulted (in order) for the default instance pad code.
+PAD_CODE_ENV_VARS = ("VMOS_PAD_CODE", "VMOS_PADCODE", "PADCODE")
+
+
+def resolve_pad_code(pad_code: Optional[str] = None) -> str:
+    """Return ``pad_code`` if given, else the first non-empty pad-code env var.
+
+    Accepts ``VMOS_PAD_CODE`` (canonical) plus the ``VMOS_PADCODE`` / ``PADCODE``
+    aliases injected by some credential stores. Raises :class:`ValueError` if none
+    is set.
+    """
+    if pad_code:
+        return pad_code
+    for name in PAD_CODE_ENV_VARS:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    raise ValueError("no pad code provided and none of " + ", ".join(PAD_CODE_ENV_VARS) + " is set")
+
+
+def install_root_stack_headless(
+    client: "VMOSClient",
+    pad_code: Optional[str] = None,
+    *,
+    payload_url: str,
+    expected_md5: Optional[str] = None,
+    expected_size: Optional[int] = None,
+    remote_dir: str = "/sdcard/Download/",
+    file_name: str = "magisk_payload.gz",
+    workdir: str = "/debug_ramdisk",
+    restart: bool = True,
+    download_timeout: float = 240.0,
+    ready_timeout: float = 420.0,
+    poll_interval: float = 5.0,
+    install_modules: bool = True,
+) -> Dict[str, Any]:
+    """Install Magisk + Zygisk-Next + LSPosed **headlessly**, the real-device-verified way.
+
+    Encodes the known-good sequence (no Toolbox UI, no ``switchRoot``, no ``su``):
+
+    1. ``upload_file_v3`` the payload ``.gz`` (VMOS-managed async download into
+       ``remote_dir``; ``autoInstall=0``).
+    2. Wait for the download by polling the file's md5/size **on the device**
+       (:func:`wait_for_file_download`) — ``fileTaskDetail`` returns ``null`` here.
+    3. Extract to ``workdir`` and run ``install.sh && install_modules.sh`` with logs
+       redirected, verifying success by on-device **state**
+       (:func:`stage_root_stack_install`).
+    4. ``restart`` the instance headlessly.
+    5. Wait for reboot readiness, tolerating code ``110031``
+       (:func:`wait_for_pad_ready`).
+    6. Verify Magisk / LSPosed / Zygisk are truly active (:func:`verify_root_stack`).
+
+    ``pad_code`` falls back to the environment (:func:`resolve_pad_code`). Returns a
+    stage-by-stage summary dict. Raises :class:`RuntimeError` if the shell is not
+    root, the download never completes, or the install state check fails.
+    """
+    pad_code = resolve_pad_code(pad_code)
+    if not (isinstance(payload_url, str) and payload_url.startswith("https://")):
+        raise ValueError("payload_url must be an https:// URL to the Magisk payload .gz")
+    shell = PadRootShell(client, pad_code, poll_timeout=200.0)
+    if not shell.is_root():
+        raise RuntimeError("instance shell is not root — is this a real-device instance?")
+
+    remote_path = remote_dir.rstrip("/") + "/" + file_name
+    result: Dict[str, Any] = {
+        "pad_code": pad_code,
+        "payload_url": payload_url,
+        "remote_path": remote_path,
+    }
+
+    # 1. Upload — VMOS-managed async download onto the device.
+    client.apps.upload_file_v3(
+        pad_codes=[pad_code],
+        url=payload_url,
+        customize_file_path=remote_dir,
+        file_name=file_name,
+        auto_install=0,
+        md5=expected_md5,
+    )
+
+    # 2. Wait for the download by md5/size on the device (Bug-fix #2).
+    download = wait_for_file_download(
+        shell,
+        remote_path,
+        expected_md5=expected_md5,
+        expected_size=expected_size,
+        timeout=download_timeout,
+        interval=poll_interval,
+    )
+    result["download"] = download
+    if not download["ready"]:
+        raise RuntimeError(f"payload download did not complete on device: {download}")
+
+    # 3. Extract + install + install_modules; verify by state (Bug-fix #3).
+    install = stage_root_stack_install(
+        shell, payload_path=remote_path, workdir=workdir, install_modules=install_modules
+    )
+    result["install"] = install
+    if not install["ok"]:
+        raise RuntimeError(f"root-stack install failed (state check): {install}")
+
+    if not restart:
+        result["restarted"] = False
+        return result
+
+    # 4. Restart headlessly.
+    client.instance.restart(pad_codes=[pad_code])
+    result["restarted"] = True
+
+    # 5. Wait for reboot readiness (tolerate code 110031).
+    ready = wait_for_pad_ready(client, pad_code, timeout=ready_timeout, interval=poll_interval)
+    result["ready"] = ready
+    if not ready["ready"]:
+        result["verified"] = {"ok": False, "detail": "instance not ready after restart"}
+        return result
+
+    # 6. Verify LSPosed / Zygisk are truly ON.
+    result["verified"] = verify_root_stack(shell)
     return result
 
 

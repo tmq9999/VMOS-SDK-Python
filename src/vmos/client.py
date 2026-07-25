@@ -11,7 +11,9 @@ Quickstart
     info = client.instance.pad_info(pad_code="AC3201...")
 
 Credentials can also be supplied through the ``VMOS_ACCESS_KEY`` /
-``VMOS_SECRET_KEY`` environment variables.
+``VMOS_SECRET_KEY`` environment variables (the aliases ``VMOS_ACCESS_KEY_ID`` /
+``VMOS_SECRET_ACCESS_KEY`` are also accepted for credential stores that inject
+those names).
 
 Async::
 
@@ -35,11 +37,34 @@ from .auth import V2Signer
 from .exceptions import VMOSAPIError, VMOSHTTPError
 from .models import APIResponse
 
-__all__ = ["VMOSClient", "AsyncVMOSClient", "DEFAULT_BASE_URL"]
+__all__ = [
+    "VMOSClient",
+    "AsyncVMOSClient",
+    "DEFAULT_BASE_URL",
+    "ACCESS_KEY_ENV_VARS",
+    "SECRET_KEY_ENV_VARS",
+]
 
 DEFAULT_BASE_URL = "https://api.vmoscloud.com"
 _DEFAULT_TIMEOUT = 60.0
 _RETRY_BACKOFF = 0.5
+
+#: Environment variables consulted (in order) for the access key. The canonical
+#: ``VMOS_ACCESS_KEY`` is tried first (backward compatible); ``VMOS_ACCESS_KEY_ID``
+#: is an accepted alias because some credential stores inject that name.
+ACCESS_KEY_ENV_VARS = ("VMOS_ACCESS_KEY", "VMOS_ACCESS_KEY_ID")
+#: Environment variables consulted (in order) for the secret key. ``VMOS_SECRET_KEY``
+#: is tried first; ``VMOS_SECRET_ACCESS_KEY`` is an accepted alias.
+SECRET_KEY_ENV_VARS = ("VMOS_SECRET_KEY", "VMOS_SECRET_ACCESS_KEY")
+
+
+def _env_first(*names: str) -> str:
+    """Return the first non-empty (stripped) environment variable among ``names``."""
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return ""
 
 
 def _encode_json(payload: Mapping[str, Any]) -> str:
@@ -85,8 +110,8 @@ class _BaseClient:
         timeout: float = _DEFAULT_TIMEOUT,
         max_retries: int = 2,
     ) -> None:
-        access_key = access_key or os.environ.get("VMOS_ACCESS_KEY", "")
-        secret_key = secret_key or os.environ.get("VMOS_SECRET_KEY", "")
+        access_key = access_key or _env_first(*ACCESS_KEY_ENV_VARS)
+        secret_key = secret_key or _env_first(*SECRET_KEY_ENV_VARS)
         self._signer = V2Signer(access_key, secret_key)
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -140,7 +165,8 @@ class VMOSClient(_BaseClient):
     ----------
     access_key / secret_key:
         VMOS credentials (console: Developer -> API). Fall back to the
-        ``VMOS_ACCESS_KEY`` / ``VMOS_SECRET_KEY`` environment variables.
+        ``VMOS_ACCESS_KEY`` / ``VMOS_SECRET_KEY`` environment variables (or their
+        ``VMOS_ACCESS_KEY_ID`` / ``VMOS_SECRET_ACCESS_KEY`` aliases).
     base_url:
         API host, defaults to ``https://api.vmoscloud.com``.
     timeout:
