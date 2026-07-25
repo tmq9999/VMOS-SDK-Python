@@ -48,7 +48,14 @@ from .manager import (
 )
 from .models import APIResponse
 from .profile import Profile, generate_profile, validate as validate_profile
-from .spoof import DeviceProfile, apply_profile, verify_profile
+from .spoof import (
+    DeviceProfile,
+    apply_profile,
+    enable_magisk_headless,
+    install_root_stack_headless,
+    verify_profile,
+    verify_root_stack,
+)
 
 __all__ = [
     "__version__",
@@ -68,6 +75,9 @@ __all__ = [
     "DeviceProfile",
     "apply_profile",
     "verify_profile",
+    "enable_magisk_headless",
+    "install_root_stack_headless",
+    "verify_root_stack",
     "Profile",
     "generate_profile",
     "validate_profile",

@@ -166,8 +166,48 @@ def test_env_var_credentials(monkeypatch):
 def test_missing_credentials_raise(monkeypatch):
     monkeypatch.delenv("VMOS_ACCESS_KEY", raising=False)
     monkeypatch.delenv("VMOS_SECRET_KEY", raising=False)
+    monkeypatch.delenv("VMOS_ACCESS_KEY_ID", raising=False)
+    monkeypatch.delenv("VMOS_SECRET_ACCESS_KEY", raising=False)
     with pytest.raises(ValueError):
         VMOSClient()
+
+
+def test_env_var_credential_aliases(monkeypatch):
+    # Canonical names unset; the *_ID / *_ACCESS_ aliases (injected by some
+    # credential stores) must be accepted so the SDK signs with them.
+    monkeypatch.delenv("VMOS_ACCESS_KEY", raising=False)
+    monkeypatch.delenv("VMOS_SECRET_KEY", raising=False)
+    monkeypatch.setenv("VMOS_ACCESS_KEY_ID", "alias_ak")
+    monkeypatch.setenv("VMOS_SECRET_ACCESS_KEY", "alias_sk")
+    captured = {}
+
+    def handler(request):
+        captured["request"] = request
+        return ok_response()
+
+    client = VMOSClient(http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    client.request("POST", "/vcpcloud/api/padApi/padInfo", json_body={})
+    req = captured["request"]
+    assert req.headers["X-Access-Key"] == "alias_ak"
+    body = req.content.decode("utf-8")
+    expected = V2Signer.signature("alias_sk", req.headers["X-Timestamp"], "/vcpcloud/api/padApi/padInfo", body)
+    assert req.headers["X-Sign"] == expected  # secret alias drove the signature
+
+
+def test_canonical_env_takes_precedence_over_alias(monkeypatch):
+    monkeypatch.setenv("VMOS_ACCESS_KEY", "canonical_ak")
+    monkeypatch.setenv("VMOS_ACCESS_KEY_ID", "alias_ak")
+    monkeypatch.setenv("VMOS_SECRET_KEY", "canonical_sk")
+    monkeypatch.setenv("VMOS_SECRET_ACCESS_KEY", "alias_sk")
+    captured = {}
+
+    def handler(request):
+        captured["request"] = request
+        return ok_response()
+
+    client = VMOSClient(http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    client.request("POST", "/vcpcloud/api/padApi/padInfo", json_body={})
+    assert captured["request"].headers["X-Access-Key"] == "canonical_ak"
 
 
 def test_unicode_body_signed_as_sent():
