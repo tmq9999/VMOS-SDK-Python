@@ -37,6 +37,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from .exceptions import ProfileValidationError
 from .profile import Profile, validate
 from .spoof import (
+    GMS_EXCLUDED_PACKAGES,
     PadRootShell,
     apply_profile as _layer1_apply,
     load_xpose_plugin,
@@ -187,7 +188,14 @@ class JavaHookBackend(Backend):
             persist_module=self.persist_module, **kwargs,
         )
         loaded: List[Dict[str, Any]] = []
-        targets = list(profile.runtime.target_apps)
+        requested = list(profile.runtime.target_apps)
+        # HARD GUARD (design §B): never app-scope an identity hook into GMS or the
+        # Play Store — they must read the *real* identity, or GMS desyncs
+        # (checkin / Play Integrity / attestation) and can crash or go uncertified.
+        # Excluded here even if a profile lists them, and load_xpose_plugin refuses
+        # them too (defense in depth).
+        excluded = [p for p in requested if p in GMS_EXCLUDED_PACKAGES]
+        targets = [p for p in requested if p not in GMS_EXCLUDED_PACKAGES]
         has_apk = bool(self.apk_url or self.apk_path)
         if targets and has_apk:
             for pkg in targets:
@@ -197,13 +205,18 @@ class JavaHookBackend(Backend):
                     apk_url=self.apk_url, apk_path=self.apk_path,
                 )
                 loaded.append({"pkg": pkg, "name": self._patch_name(pkg), "out": out})
-        note = None
+        notes: List[str] = []
+        if excluded:
+            notes.append("excluded from scoping (GMS/Play must read the real identity): "
+                         + ", ".join(excluded))
         if targets and not has_apk:
-            note = ("plugin load skipped: no apk_url/apk_path given "
-                    "(assuming the plugin is already loaded); props still refreshed")
+            notes.append("plugin load skipped: no apk_url/apk_path given "
+                         "(assuming the plugin is already loaded); props still refreshed")
         elif not targets:
-            note = "no runtime.target_apps in profile: props set but no app scoped"
-        return {"backend": self.name, "props_set": props, "loaded": loaded, "note": note}
+            notes.append("no scopable runtime.target_apps in profile: props set but no app scoped")
+        note = "; ".join(notes) if notes else None
+        return {"backend": self.name, "props_set": props, "loaded": loaded,
+                "excluded": excluded, "note": note}
 
     def verify(self, profile: Profile) -> Dict[str, Any]:
         """Read the ``persist.vmos.spoof.*`` props back with ``getprop``.

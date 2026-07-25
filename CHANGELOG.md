@@ -42,6 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `vmos.spoof.set_identity_props` (drives the Java Hook Backend from the Profile).
 - `examples/15_profile_manager.py` — provision a whole device from one profile
   (`--dry-run` to preview offline, `--verify` to read back).
+- **GMS / Play hard guard** (`vmos.spoof.GMS_EXCLUDED_PACKAGES`) — a hard
+  exclusion so an identity hook is **never** app-scoped into
+  `com.google.android.gms` or `com.android.vending`. `load_xpose_plugin` raises
+  `ValueError` for those packages, and `JavaHookBackend.apply` filters them out of
+  `runtime.target_apps` (reporting them under a new `excluded` result key) even if
+  a profile lists them. GMS/Play must observe the device's *real* identity IDs;
+  injecting spoofed IDs desyncs GMS's own view (checkin / Play Integrity /
+  attestation) and risks crashes or an "uncertified" verdict. Build props
+  (`ro.*`) may still be system-wide, as a coherent & genuine set (design §B).
 
 ### Changed
 
@@ -59,9 +68,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names. No breaking change to existing behavior.
 - `docs/{en,vi}/device-profile-framework.md` — Roadmap item **A** marked done
   (now codified as `ProfileManager`); added a *Profile Manager in code* appendix.
+- The Magisk module's `system.prop` is now the **merged union** of Layer-1 build
+  props (`install_persistence`) and Layer-2 identity inputs (`set_identity_props`).
+  Because the two layers run independently and in either order, each now
+  read-merge-writes `system.prop` (via `_write_module_system_prop`) so neither
+  clobbers the other's keys; repeated identical applies are idempotent (no growth
+  or duplication).
+- `vmos.spoof.remove_spoof(..., clear_runtime=True)` now also deletes the applied
+  spoof properties from the live prop area (`magisk64 resetprop --delete <key>`)
+  — the keys persisted in `system.prop` plus the known `persist.vmos.spoof.*`
+  inputs — so scoped apps stop seeing spoofed values immediately, without a
+  reboot (design §E.3). Pass `clear_runtime=False` to keep the old behavior.
 
 ### Fixed
 
+- **Identity spoof did not survive reboot (no valid Magisk module)** —
+  `set_identity_props` applied the `persist.vmos.spoof.*` inputs with runtime-only
+  `resetprop -n` (volatile `prop_area`, rebuilt every boot) and "persisted" them by
+  *appending* `config/custom.conf` — which nothing reads at boot. It never wrote
+  `module.prop` / `system.prop`, so `/data/adb/modules/vmos_spoof` was **not a
+  valid Magisk module** and the spoof was lost on reboot (device-confirmed).
+  `set_identity_props(persist_module=True)` (and `apply_profile`'s persist path)
+  now generate a **valid** module — `module.prop` (six required fields, integer
+  `versionCode`) + `system.prop` re-applied by Magisk at **post-fs-data** (before
+  Zygote/GMS read) — which is now the reboot-durable mechanism. `custom.conf` is
+  kept only as a remove/regenerate manifest and is **overwritten** each call
+  (the old `>>` append grew it unbounded on every apply). All module writes go
+  through `_write_file` / `_run_batched`, respecting `ASYNC_CMD_MAX_BYTES`
+  (design §A). *Reboot-persistence and GMS/Play stability remain to be confirmed
+  on a real VMOS device per the design's set→reboot→verify protocol (§D).*
 - **Async task-detail body format (`code=100013`)** — `padTaskDetail` /
   `fileTaskDetail` must be called with the integer-array body
   `{"taskIds":[<int>, ...]}`; the object form `{"taskIds":[{"taskId":N}]}` is
