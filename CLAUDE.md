@@ -157,6 +157,6 @@ def handler(request):
 client = VMOSClient("ak", "sk", http_client=httpx.Client(transport=httpx.MockTransport(handler)))
 ```
 
-Run the SDK's own suite with `python -m pytest tests/ -q` (182 tests; the
+Run the SDK's own suite with `python -m pytest tests/ -q` (245 tests; the
 spec-driven test in `tests/test_all_endpoints.py` re-verifies signature and
 payload shape for every endpoint).

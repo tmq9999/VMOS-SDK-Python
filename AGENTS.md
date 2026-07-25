@@ -22,7 +22,7 @@ src/vmos/
   api/*.py           GENERATED endpoint wrappers — do not edit by hand
 scripts/             generator toolchain (parse docs → spec → code + docs)
 scripts/data/endpoints.json          parsed spec snapshot (source of truth)
-tests/               182 tests; test_all_endpoints.py covers every endpoint
+tests/               245 tests; test_all_endpoints.py covers every endpoint
 tests/data/endpoints_manifest.json   machine-readable endpoint→method index
 docs/en/, docs/vi/   GENERATED per-namespace API reference
 examples/            runnable usage scripts
@@ -90,7 +90,7 @@ data = client.phone.user_pad_list()             # returns response `data`; raise
 
 ## PR / commit expectations
 
-- Run `python -m pytest tests/ -q` before committing; all 182+ tests must pass.
+- Run `python -m pytest tests/ -q` before committing; all 245+ tests must pass.
 - If you regenerate code, commit spec + generated files + manifest together so
   the suite stays consistent.
 - Conventional, descriptive commit messages (e.g. `feat: add X endpoint group`,

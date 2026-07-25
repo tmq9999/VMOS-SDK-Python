@@ -2,7 +2,7 @@
 
 **[English](#english)** | **[Tiếng Việt](#tiếng-việt)**
 
-![tests](https://img.shields.io/badge/tests-182%20passed-brightgreen) ![endpoints](https://img.shields.io/badge/endpoints-152%2F152-blue) ![python](https://img.shields.io/badge/python-3.9%2B-blue) ![license](https://img.shields.io/badge/license-MIT-green)
+![tests](https://img.shields.io/badge/tests-245%20passed-brightgreen) ![endpoints](https://img.shields.io/badge/endpoints-152%2F152-blue) ![python](https://img.shields.io/badge/python-3.9%2B-blue) ![license](https://img.shields.io/badge/license-MIT-green)
 
 Complete, production-ready Python SDK for the [VMOS Cloud Server OpenAPI](https://cloud.vmoscloud.com/vmoscloud/doc/en/server/OpenAPI.html) — cloud Android phone instances. Covers **all 152 documented endpoints** across 11 service areas, with V2 signed requests, sync **and** async clients, typed wrappers, webhook callback parsing, and a spec-driven test suite that verifies every endpoint against the official documentation.
 
@@ -18,7 +18,7 @@ Complete, production-ready Python SDK for the [VMOS Cloud Server OpenAPI](https:
 - 🧭 **Typed, documented wrappers**: every method has full docstrings with parameter descriptions from the official docs; `**extra` passes new/undocumented params without an SDK update.
 - 🚨 **Clean error model**: `VMOSAPIError` (business errors), `VMOSAuthError` (signature/key issues 2019/2031/2032/2033), `VMOSRateLimitError`, `VMOSHTTPError`.
 - 📥 **Webhook callbacks**: `vmos.callbacks.parse_callback()` parses all documented callback payloads (ADB results, file uploads, app operations, status changes...).
-- 🧪 **182 tests**: official signing vector + a spec-driven test for *every single endpoint* (path, HTTP method, parameter names, signature over exact bytes).
+- 🧪 **245 tests**: official signing vector + a spec-driven test for *every single endpoint* (path, HTTP method, parameter names, signature over exact bytes).
 - ✅ **Live-verified**: POST & GET signing confirmed against the production API across `phone`, `instance`, `apps`, `tasks` and `touch` — including a full UI-automation flow (humanized click → text input → screenshot confirmation) on a real instance.
 - 🤖 **AI-ready**: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) and a machine-readable endpoint manifest ([`tests/data/endpoints_manifest.json`](tests/data/endpoints_manifest.json)) so Claude, Codex, Cursor & friends can use the SDK at full fidelity.
 
@@ -137,7 +137,7 @@ Runnable scripts in [`examples/`](examples): listing instances, restart + task p
 ```bash
 git clone https://github.com/tmq9999/VMOS-SDK-Python.git && cd VMOS-SDK-Python
 pip install httpx pytest anyio
-python -m pytest tests/ -q          # 182 tests
+python -m pytest tests/ -q          # 245 tests
 ```
 
 The SDK is **generated from the official docs** — see [`scripts/README.md`](scripts/README.md) to refresh it when VMOS ships new endpoints.
@@ -162,7 +162,7 @@ SDK Python **đầy đủ và sẵn sàng cho production** dành cho [VMOS Cloud
 - 🧭 **Wrapper đầy đủ tài liệu**: mỗi phương thức có docstring với mô tả tham số lấy từ tài liệu chính thức; tham số mới/chưa có trong docs truyền qua `**extra` mà không cần chờ SDK cập nhật.
 - 🚨 **Mô hình lỗi rõ ràng**: `VMOSAPIError` (lỗi nghiệp vụ), `VMOSAuthError` (lỗi chữ ký/khóa 2019/2031/2032/2033), `VMOSRateLimitError`, `VMOSHTTPError`.
 - 📥 **Webhook callback**: `vmos.callbacks.parse_callback()` phân tích mọi payload callback trong tài liệu (kết quả ADB, tải file, thao tác ứng dụng, thay đổi trạng thái...).
-- 🧪 **182 bài test**: test vector chữ ký chính thức + test tự động cho *từng endpoint một* (đường dẫn, HTTP method, tên tham số, chữ ký trên đúng byte gửi đi).
+- 🧪 **245 bài test**: test vector chữ ký chính thức + test tự động cho *từng endpoint một* (đường dẫn, HTTP method, tên tham số, chữ ký trên đúng byte gửi đi).
 - ✅ **Đã kiểm chứng với API thật**: chữ ký POST & GET xác nhận trên production qua `phone`, `instance`, `apps`, `tasks` và `touch` — bao gồm cả luồng tự động hóa UI hoàn chỉnh (click giống người → nhập text → chụp màn hình xác nhận) trên instance thật.
 - 🤖 **Sẵn sàng cho AI**: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) và manifest endpoint dạng máy-đọc-được ([`tests/data/endpoints_manifest.json`](tests/data/endpoints_manifest.json)) để Claude, Codex, Cursor... dùng SDK chính xác tối đa.
 
@@ -281,7 +281,7 @@ Script chạy được trong [`examples/`](examples): liệt kê instance, resta
 ```bash
 git clone https://github.com/tmq9999/VMOS-SDK-Python.git && cd VMOS-SDK-Python
 pip install httpx pytest anyio
-python -m pytest tests/ -q          # 182 bài test
+python -m pytest tests/ -q          # 245 bài test
 ```
 
 SDK được **sinh từ tài liệu chính thức** — xem [`scripts/README.md`](scripts/README.md) để cập nhật khi VMOS phát hành endpoint mới.
