@@ -61,6 +61,7 @@ __all__ = [
     "load_xpose_plugin",
     "list_xpose_plugins",
     "remove_xpose_plugin",
+    "GMS_EXCLUDED_PACKAGES",
     "PIXEL_10_PRO_A17",
     "PIXEL_10_A17",
     "PIXEL_10_PRO_XL_A17",
@@ -945,13 +946,18 @@ def _service_script(props: Dict[str, str], android_id: Optional[str]) -> str:
 
 
 def _module_prop() -> str:
+    """The module's ``module.prop`` — the six Magisk-required fields with an
+    **integer** ``versionCode``. Bumped to v1.1 now that the module persists BOTH
+    the build props and the ``persist.vmos.spoof.*`` identity inputs via
+    ``system.prop`` (so Magisk treats the changed module as an update)."""
     return (
         f"id={MODULE_ID}\n"
         "name=VMOS Device Spoof\n"
-        "version=v1.0\n"
-        "versionCode=1\n"
+        "version=v1.1\n"
+        "versionCode=2\n"
         "author=vmos-sdk\n"
-        "description=Persistent build.prop device-identity spoof for reseller profiles.\n"
+        "description=Persistent build-prop + identity-input spoof (canonical Profile). "
+        "Re-applied every boot at post-fs-data via system.prop.\n"
     )
 
 
@@ -973,16 +979,59 @@ def _write_file(shell: "PadRootShell", path: str, content: str, *, mode: str = "
     shell.sh(f"base64 -d {tmp} > {p} && chmod {mode} {p} && rm -f {tmp}")
 
 
+def _parse_prop_lines(text: str) -> "OrderedDict[str, str]":
+    """Parse ``key=value`` property lines into an ordered map (skips blanks/comments)."""
+    props: "OrderedDict[str, str]" = OrderedDict()
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if key:
+            props[key] = value.strip()
+    return props
+
+
+def _read_module_system_prop(shell: "PadRootShell") -> "OrderedDict[str, str]":
+    """Return the module's current ``system.prop`` as an ordered map (empty if absent)."""
+    out = shell.sh(f"cat {_sh_quote(_MODULE_DIR + '/system.prop')} 2>/dev/null || true")
+    return _parse_prop_lines(out)
+
+
+def _write_module_system_prop(
+    shell: "PadRootShell", new_props: Dict[str, str]
+) -> "OrderedDict[str, str]":
+    """Merge ``new_props`` into the module's ``system.prop`` and write the union back.
+
+    ``system.prop`` is Magisk's single boot-time property file, re-applied via
+    ``resetprop`` at **post-fs-data** (before Zygote/GMS read). Two independent
+    layers contribute to it — the build props (:func:`install_persistence`) and the
+    ``persist.vmos.spoof.*`` identity inputs (:func:`set_identity_props`) — and they
+    run in either order, so each **merges** rather than overwrites: existing keys are
+    preserved, ``new_props`` win on conflict, and repeated identical calls neither
+    grow nor duplicate the file (idempotent). Written through :func:`_write_file`, so
+    it respects the async_cmd input cap.
+    """
+    merged = _read_module_system_prop(shell)
+    for key, value in new_props.items():
+        merged[key] = value
+    content = "".join(f"{k}={v}\n" for k, v in merged.items())
+    _write_file(shell, f"{_MODULE_DIR}/system.prop", content)
+    return merged
+
+
 def install_persistence(shell: "PadRootShell", profile: "DeviceProfile") -> None:
     """Install boot-time persistence via BOTH a Magisk ``service.d`` script and a
     module ``system.prop`` (whichever Magisk processes first wins; both are safe)."""
     props = profile.build_props()
     # 1) General Magisk boot script (run on every boot by magiskd).
     _write_file(shell, _SERVICE_D, _service_script(props, profile.android_id), mode="0755")
-    # 2) Magisk module with system.prop (applied very early, before apps start).
-    system_prop = "".join(f"{k}={v}\n" for k, v in props.items())
+    # 2) Magisk module with system.prop (applied very early, at post-fs-data, before
+    #    apps start). system.prop is the UNION of build props + identity inputs, so
+    #    merge to preserve any persist.vmos.spoof.* keys set by set_identity_props.
     _write_file(shell, f"{_MODULE_DIR}/module.prop", _module_prop())
-    _write_file(shell, f"{_MODULE_DIR}/system.prop", system_prop)
+    _write_module_system_prop(shell, props)
     if profile.android_id:
         _write_file(
             shell,
@@ -1072,10 +1121,28 @@ def verify_profile(client: "VMOSClient", pad_code: str, profile: "DeviceProfile"
     return {"ok": all_ok, "checks": checks}
 
 
-def remove_spoof(client: "VMOSClient", pad_code: str) -> None:
-    """Remove the persistent spoof payload (module + service.d). Runtime props
-    reset on the next reboot; call with a genuine profile to fully restore."""
+def remove_spoof(client: "VMOSClient", pad_code: str, *, clear_runtime: bool = True) -> None:
+    """Remove the persistent spoof payload (Magisk module + service.d script).
+
+    With ``clear_runtime`` (default) the currently-applied spoof properties are also
+    deleted from the live prop area via ``magisk64 resetprop --delete <key>`` — so
+    scoped apps stop seeing spoofed values **immediately**, without waiting for a
+    reboot (design §E.3). The keys cleared are those the module persists (read from
+    ``system.prop``) plus the known ``persist.vmos.spoof.*`` identity inputs (in case
+    ``system.prop`` is already gone). Build props revert to their genuine values on
+    the next reboot — apply a genuine Profile to fully restore identity before then.
+    """
     shell = PadRootShell(client, pad_code)
+    if clear_runtime:
+        keys: List[str] = list(_read_module_system_prop(shell).keys())
+        for key in _IDENTITY_PROPS.values():
+            if key not in keys:
+                keys.append(key)
+        if keys:
+            _run_batched(
+                shell,
+                [f"{MAGISK_BIN} resetprop --delete {_sh_quote(k)}" for k in keys],
+            )
     shell.sh(f"rm -f {_SERVICE_D}; rm -rf {_MODULE_DIR}; true")
 
 
@@ -1209,9 +1276,15 @@ def set_identity_props(
     plugin returns them for ``getImei()`` / ``getSubscriberId()`` /
     ``AdvertisingIdClient.getId()`` / ``WifiInfo.getMacAddress()`` /
     ``Build.getSerial()`` / ``MediaDrm`` / ``Settings.Secure`` etc. in scoped
-    apps. Applied immediately via Magisk ``resetprop``; when ``persist_module``
-    is true they're also appended to the ``vmos_spoof`` Magisk module's
-    ``custom.conf`` so they survive reboots.
+    apps. Applied immediately via Magisk ``resetprop`` for the current session;
+    when ``persist_module`` is true they are also written into a **valid**
+    ``vmos_spoof`` Magisk module (``module.prop`` + ``system.prop``) so Magisk
+    re-applies them at every boot (post-fs-data, before apps read them) — that
+    module is the reboot-durable mechanism, replacing the volatile runtime
+    ``resetprop -n``. ``system.prop`` is merged with any build props already there
+    (:func:`install_persistence`), so the two layers never clobber each other.
+    ``custom.conf`` is kept only as a remove/regenerate manifest (overwritten each
+    call — never appended, which previously grew the file unboundedly).
 
     ``drm_id`` is a hex string (decoded to bytes by the plugin). Only the
     arguments you pass are set. Returns the ``prop -> value`` map written.
@@ -1226,11 +1299,29 @@ def set_identity_props(
         return {}
     _run_batched(shell, resetprop_commands(to_set))
     if persist_module:
-        lines = "".join(f"ENABLED,{k},{v}\\n" for k, v in to_set.items())
-        conf = f"{_MODULE_DIR}/config/custom.conf"
-        shell.sh(f"mkdir -p {_MODULE_DIR}/config 2>/dev/null; "
-                 f"printf 'FILE_ENABLED\\n{lines}' >> {_sh_quote(conf)} 2>/dev/null || true")
+        # Persist as a VALID Magisk module so the identity inputs survive reboot,
+        # re-applied every boot at post-fs-data via system.prop (NOT the volatile
+        # runtime `resetprop -n`, which is lost on reboot). All writes go through
+        # _write_file / _write_module_system_prop, respecting ASYNC_CMD_MAX_BYTES.
+        _write_file(shell, f"{_MODULE_DIR}/module.prop", _module_prop())
+        # system.prop is merged so Layer-1 build props (install_persistence) survive.
+        _write_module_system_prop(shell, to_set)
+        # custom.conf is kept ONLY as a manifest for remove/regenerate — OVERWRITE,
+        # never append (the old `>>` grew the file on every call).
+        conf_lines = "FILE_ENABLED\n" + "".join(f"ENABLED,{k},{v}\n" for k, v in to_set.items())
+        _write_file(shell, f"{_MODULE_DIR}/config/custom.conf", conf_lines)
+        # Ensure the module is enabled (no disable/remove flags).
+        shell.sh(f"rm -f {_MODULE_DIR}/disable {_MODULE_DIR}/remove 2>/dev/null; true")
     return to_set
+
+
+#: Packages that MUST NEVER be app-scoped with an identity hook. GMS and the Play
+#: Store are designed to read the device's *real* identity IDs; injecting spoofed
+#: IDs into them desyncs GMS's own view (checkin / Play Integrity / attestation) and
+#: risks crashes or an "uncertified" verdict (design §B). Identity IDs are spoofed
+#: **app-scoped** into target apps only — never these two. Build props (``ro.*``)
+#: may still be system-wide, as a coherent & genuine set.
+GMS_EXCLUDED_PACKAGES = ("com.google.android.gms", "com.android.vending")
 
 
 def load_xpose_plugin(
@@ -1250,9 +1341,20 @@ def load_xpose_plugin(
 
     No LSPosed needed — ``apmt`` is built into the VMOS image. Build the plugin
     from ``xpose_plugin/`` (see its README).
+
+    **Hard guard (design §B):** refuses ``com.google.android.gms`` and
+    ``com.android.vending`` — an identity hook must never be injected into GMS or
+    the Play Store (they must observe the real identity). Raises :class:`ValueError`
+    for those packages, even if a caller passes them explicitly.
     """
     if bool(apk_url) == bool(apk_path):
         raise ValueError("provide exactly one of apk_url or apk_path")
+    if target_pkg in GMS_EXCLUDED_PACKAGES:
+        raise ValueError(
+            f"refusing to load an identity hook into {target_pkg!r}: GMS/Play must read "
+            "the real device identity (design §B). Scope identity hooks to target apps "
+            "only, never com.google.android.gms / com.android.vending."
+        )
     shell = PadRootShell(client, pad_code)
     src = f"-u {_sh_quote(apk_url)}" if apk_url else f"-f {_sh_quote(apk_path)}"
     return shell.sh(f"apmt patch add -n {_sh_quote(name)} -p {_sh_quote(target_pkg)} {src}")
