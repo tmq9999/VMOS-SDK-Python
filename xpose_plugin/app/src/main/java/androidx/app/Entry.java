@@ -21,7 +21,7 @@ import com.android.core.XSHelpers;
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.meid      A0000012345678
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.imsi      460110000000000
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.iccid     8986000000000000000
- *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.line1     84987654321
+ *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.line      84987654321
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.androidid a1b2c3d4e5f60718
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.gaid      38400000-8cf0-11bd-b23e-10b96e40000d
  *   /data/adb/magisk/magisk64 resetprop -n persist.vmos.spoof.wifimac   02:00:00:11:22:33
@@ -34,13 +34,25 @@ import com.android.core.XSHelpers;
  *
  * <p>Because this hooks the app-side Java getters it changes what the scoped app
  * actually reads — the layer {@code resetprop} alone cannot reach. Coverage:
- * {@code TelephonyManager} (IMEI/MEID/IMSI/ICCID/line1), {@code Settings.Secure}
+ * {@code TelephonyManager} (IMEI/MEID/IMSI/ICCID/line), {@code Settings.Secure}
  * (ANDROID_ID), {@code AdvertisingIdClient$Info.getId} (common GAID path),
  * {@code WifiInfo} (MAC/BSSID), {@code Build.getSerial()}, {@code MediaDrm}
- * deviceUniqueId getter, and the MSA OAID supplier. Every extra hook is
- * guarded — absent classes are skipped — so one APK is safe to load into any
- * target, and you extend it by adding a hook for whatever getter a specific app
- * uses.
+ * deviceUniqueId getter, and the MSA OAID supplier. It also spoofs the static
+ * {@code Build.*} identity fields (MODEL / MANUFACTURER / BRAND / DEVICE /
+ * PRODUCT / FINGERPRINT and {@code Build.VERSION.RELEASE}) <b>app-scoped</b> from
+ * {@code persist.vmos.spoof.build.*} — see {@link #spoofBuildFields}. Every extra
+ * hook is guarded — absent classes are skipped — so one APK is safe to load into
+ * any target, and you extend it by adding a hook for whatever getter a specific
+ * app uses.
+ *
+ * <p><b>GMS-safe denylist.</b> {@link #appMain} returns early for Google Play
+ * Services ({@code com.google.android.gms} and its process packages), the Play
+ * Store ({@code com.android.vending}) and GSF ({@code com.google.android.gsf}),
+ * so those keep their <i>genuine</i> device identity. A system-wide build spoof
+ * (e.g. Pixel / Android 16 / SDK 36) crash-loops
+ * {@code com.google.android.gms.persistent} because the spoofed SDK conflicts
+ * with the real framework; spoofing every app <i>except</i> GMS/Play is the
+ * GMS-safe design (this is a denylist, the opposite of injecting into GMS).
  *
  * <p><b>Scope/limits:</b> this is an <i>app-process, Java-layer</i> hook. It does
  * not hook Binder/AIDL, JNI, or native code (so a shell {@code service call
@@ -63,9 +75,30 @@ public class Entry {
         }
     }
 
-    /** XPose app entry point (must be exactly this signature). */
+    /**
+     * XPose app entry point (must be exactly this 5-arg signature; {@code pkg} is
+     * the 4th arg). Verified against {@code net.armcloud.xscore:1.0.0} — the
+     * upstream doc's 4-arg form is stale.
+     */
     public static void appMain(ClassLoader loader, Context context, String appClass, String pkg, String process) {
         if (process != null && process.contains("sandboxed_process")) return; // skip webview procs
+        // DENYLIST GUARD (GMS-safe) — runs BEFORE System.loadLibrary and any
+        // hook/Build.* set. NEVER spoof inside Google Play Services / Play Store /
+        // GSF: they must keep their GENUINE (real-framework, e.g. A13/SDK33)
+        // identity. A system-wide Pixel/Android-16/SDK-36 build spoof crash-loops
+        // com.google.android.gms.persistent (spoofed SDK conflicts with the real
+        // framework), so app-scoped spoofing everywhere EXCEPT GMS/Play is the
+        // GMS-safe design (a denylist — the opposite of injecting into GMS). All
+        // GMS processes (.persistent/.ui/.unstable/...) share the "com.google.
+        // android.gms" package, so filtering by pkg is sufficient.
+        if (pkg == null
+                || pkg.equals("com.google.android.gms")
+                || pkg.startsWith("com.google.android.gms")
+                || pkg.equals("com.android.vending")
+                || pkg.equals("com.google.android.gsf")) {
+            Log.d(TAG, "denylist skip pkg=" + pkg + " process=" + process);
+            return;
+        }
         Log.d(TAG, "appMain pkg=" + pkg + " process=" + process);
         try {
             // Allow reflective reads of the hidden android.os.SystemProperties on Android 9+.
@@ -93,6 +126,13 @@ public class Entry {
             hookExtras(loader);
         } catch (Throwable t) {
             Log.e(TAG, "hookExtras failed: " + Log.getStackTraceString(t));
+        }
+        try {
+            // NEW (app-scoped Build.* identity). Safe here: the GMS/Play denylist
+            // above already returned, so this never runs inside GMS/Play.
+            spoofBuildFields(loader);
+        } catch (Throwable t) {
+            Log.e(TAG, "spoofBuildFields failed: " + Log.getStackTraceString(t));
         }
     }
 
@@ -133,7 +173,10 @@ public class Entry {
         forceReturnFromProp(tm, "getSubscriberId", "persist.vmos.spoof.imsi", int.class);
         forceReturnFromProp(tm, "getSimSerialNumber", "persist.vmos.spoof.iccid");
         forceReturnFromProp(tm, "getSimSerialNumber", "persist.vmos.spoof.iccid", int.class);
-        forceReturnFromProp(tm, "getLine1Number", "persist.vmos.spoof.line1");
+        // Prop-key reconciliation: the plugin reads "persist.vmos.spoof.line"
+        // (not ".line1"); the Python side writes the same key. See the SDK's
+        // vmos.spoof._IDENTITY_PROPS / vmos.profile.Profile.identity_props.
+        forceReturnFromProp(tm, "getLine1Number", "persist.vmos.spoof.line");
     }
 
     /** Hook Settings.Secure.getString(...) to override ANDROID_ID for the scoped app. */
@@ -223,6 +266,77 @@ public class Entry {
                     + Character.digit(s.charAt(i + 1), 16));
         }
         return out;
+    }
+
+    /**
+     * App-scoped {@code Build.*} identity spoof (NEW). Overrides the static
+     * {@code android.os.Build} string fields the app reads —
+     * {@code MODEL / MANUFACTURER / BRAND / DEVICE / PRODUCT / FINGERPRINT} and
+     * {@code android.os.Build$VERSION.RELEASE} — from the matching
+     * {@code persist.vmos.spoof.build.*} property, and <b>only when that property
+     * is set</b> (an empty/unset prop leaves the real value untouched).
+     *
+     * <p>This is called from {@link #appMain} <i>after</i> the GMS/Play denylist
+     * guard, so it never runs inside Google Play Services / Play Store — those
+     * keep their genuine identity. Uses {@link XSHelpers#setStaticObjectField}.
+     *
+     * <p><b>SDK_INT is intentionally left DISABLED.</b> Raising
+     * {@code Build.VERSION.SDK_INT} app-scoped (e.g. 33&rarr;36) on a real
+     * lower-SDK framework can crash the target app: apps branch on SDK_INT and
+     * then call APIs that do not exist on the real framework
+     * ({@code NoSuchMethodError} / {@code NoClassDefFoundError}). That is the same
+     * mechanism that crashed GMS system-wide, scoped to one app. Enable the
+     * commented block below <i>only per-app after testing that specific app</i>.
+     */
+    private static void spoofBuildFields(ClassLoader loader) {
+        Class<?> build;
+        try {
+            build = loader.loadClass("android.os.Build");
+        } catch (Throwable t) {
+            Log.d(TAG, "Build spoof skip (no android.os.Build): " + t);
+            return;
+        }
+        setBuildStringFromProp(build, "MODEL", "persist.vmos.spoof.build.model");
+        setBuildStringFromProp(build, "MANUFACTURER", "persist.vmos.spoof.build.manufacturer");
+        setBuildStringFromProp(build, "BRAND", "persist.vmos.spoof.build.brand");
+        setBuildStringFromProp(build, "DEVICE", "persist.vmos.spoof.build.device");
+        setBuildStringFromProp(build, "PRODUCT", "persist.vmos.spoof.build.product");
+        setBuildStringFromProp(build, "FINGERPRINT", "persist.vmos.spoof.build.fingerprint");
+        try {
+            Class<?> ver = loader.loadClass("android.os.Build$VERSION");
+            setBuildStringFromProp(ver, "RELEASE", "persist.vmos.spoof.build.release");
+            // ⚠️ SDK_INT — DISABLED BY DEFAULT (high risk; see the method Javadoc).
+            // Raising SDK_INT app-scoped on a real lower-SDK framework can crash the
+            // target app. Enable ONLY per-app after testing:
+            //
+            // String sdk = prop("persist.vmos.spoof.build.sdk_int");
+            // if (sdk != null && !sdk.isEmpty()) {
+            //     try {
+            //         XSHelpers.setStaticIntField(ver, "SDK_INT", Integer.parseInt(sdk));
+            //         Log.d(TAG, "Build.VERSION.SDK_INT <- " + sdk + " (RISKY: app-scoped SDK skew)");
+            //     } catch (Throwable t) {
+            //         Log.d(TAG, "skip Build.VERSION.SDK_INT: " + t);
+            //     }
+            // }
+        } catch (Throwable t) {
+            Log.d(TAG, "Build.VERSION spoof skip: " + t);
+        }
+    }
+
+    /**
+     * Set a static {@code String} field on {@code cls} from a system property,
+     * but only when the property is non-empty (so unset props leave the real
+     * value untouched). Guarded — a missing field is logged and skipped.
+     */
+    private static void setBuildStringFromProp(Class<?> cls, String field, String propKey) {
+        String v = prop(propKey);
+        if (v == null || v.isEmpty()) return;
+        try {
+            XSHelpers.setStaticObjectField(cls, field, v);
+            Log.d(TAG, "Build." + field + " <- " + propKey + " = " + v);
+        } catch (Throwable t) {
+            Log.d(TAG, "skip Build." + field + " (" + propKey + "): " + t);
+        }
     }
 
     /**

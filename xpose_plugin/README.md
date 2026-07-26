@@ -29,7 +29,7 @@ device — set the values headlessly per instance with Magisk `resetprop`
 | `persist.vmos.spoof.meid` | `meid` | `getMeid()` |
 | `persist.vmos.spoof.imsi` | `imsi` | `getSubscriberId()` |
 | `persist.vmos.spoof.iccid` | `iccid` | `getSimSerialNumber()` |
-| `persist.vmos.spoof.line1` | `line1` | `getLine1Number()` |
+| `persist.vmos.spoof.line` | `line1` | `getLine1Number()` |
 | `persist.vmos.spoof.androidid` | `android_id` | `Settings.Secure.getString(..., "android_id")` |
 | `persist.vmos.spoof.gaid` | `gaid` | `AdvertisingIdClient$Info.getId()` (Google Ad ID) |
 | `persist.vmos.spoof.wifimac` | `wifi_mac` | `WifiInfo.getMacAddress()` |

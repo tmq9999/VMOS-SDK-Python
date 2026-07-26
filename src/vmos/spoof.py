@@ -58,9 +58,13 @@ __all__ = [
     "enable_lsposed_ui",
     "scope_lsposed_module",
     "set_identity_props",
+    "set_build_props",
     "load_xpose_plugin",
     "list_xpose_plugins",
     "remove_xpose_plugin",
+    "GMS_DENYLIST",
+    "list_installed_packages",
+    "app_scoped_targets",
     "PIXEL_10_PRO_A17",
     "PIXEL_10_A17",
     "PIXEL_10_PRO_XL_A17",
@@ -1168,13 +1172,21 @@ def scope_lsposed_module(
     return {"module": module_pkg, "enabled": enabled, "modules": modules, "scope": scope}
 
 
-#: system properties the XPose spoof plugin reads (see xpose_plugin/).
+#: System properties the compiled XPose spoof plugin reads (``xpose_plugin/`` —
+#: ``androidx.app.Entry``). The **prop key on the right MUST match the plugin's
+#: read exactly**, regardless of the Python-side kwarg on the left. Verified
+#: against the plugin dex, the plugin reads
+#: ``persist.vmos.spoof.{imei,meid,imsi,iccid,line,androidid,gaid,oaid,wifimac,
+#: bssid,serial,drmid}`` — note the phone number is ``.line`` (NOT ``.line1``)
+#: and android_id/wifi_mac/drm_id collapse to ``.androidid/.wifimac/.drmid``.
+#: (Reconciliation bug fix: ``line1`` previously wrote ``.line1``, which the
+#: plugin never read.)
 _IDENTITY_PROPS = {
     "imei": "persist.vmos.spoof.imei",
     "meid": "persist.vmos.spoof.meid",
     "imsi": "persist.vmos.spoof.imsi",
     "iccid": "persist.vmos.spoof.iccid",
-    "line1": "persist.vmos.spoof.line1",
+    "line1": "persist.vmos.spoof.line",         # TelephonyManager.getLine1Number()
     "android_id": "persist.vmos.spoof.androidid",
     "gaid": "persist.vmos.spoof.gaid",          # Google Advertising ID
     "oaid": "persist.vmos.spoof.oaid",          # MSA OAID (best-effort, per target SDK)
@@ -1183,6 +1195,38 @@ _IDENTITY_PROPS = {
     "serial": "persist.vmos.spoof.serial",      # Build.getSerial()
     "drm_id": "persist.vmos.spoof.drmid",       # MediaDrm/Widevine device id (hex)
 }
+
+#: Build.* identity fields the XPose plugin spoofs **app-scoped** (never in
+#: GMS/Play — the plugin's ``appMain`` denylist guard skips those). Maps the
+#: :func:`set_build_props` kwarg -> the ``persist.vmos.spoof.build.*`` prop the
+#: plugin reads (``androidx.app.Entry.spoofBuildFields``). ``sdk_int`` is included
+#: for completeness but is a **no-op until the plugin's SDK_INT line is manually
+#: enabled** — raising SDK_INT app-scoped on a real lower-SDK framework can crash
+#: the target app (see the plugin Javadoc).
+_BUILD_PROPS = {
+    "model": "persist.vmos.spoof.build.model",               # Build.MODEL
+    "manufacturer": "persist.vmos.spoof.build.manufacturer",  # Build.MANUFACTURER
+    "brand": "persist.vmos.spoof.build.brand",               # Build.BRAND
+    "device": "persist.vmos.spoof.build.device",             # Build.DEVICE
+    "product": "persist.vmos.spoof.build.product",           # Build.PRODUCT
+    "fingerprint": "persist.vmos.spoof.build.fingerprint",   # Build.FINGERPRINT
+    "release": "persist.vmos.spoof.build.release",           # Build.VERSION.RELEASE
+    "sdk_int": "persist.vmos.spoof.build.sdk_int",           # Build.VERSION.SDK_INT (plugin read DISABLED by default)
+}
+
+#: Packages that must **never** be spoofed so they keep their GENUINE identity:
+#: Google Play Services (all its processes share this package), the Play Store and
+#: GSF. A system-wide Pixel/Android-16/SDK-36 build spoof crash-loops
+#: ``com.google.android.gms.persistent`` (the spoofed SDK conflicts with the real
+#: framework), so the app-scoped model hooks **all installed apps EXCEPT** these.
+#: The plugin's ``appMain`` enforces the same denylist defensively; this constant
+#: is the registration-layer counterpart used by :func:`app_scoped_targets`.
+#: Callers may extend it (e.g. their own controller app) via ``extra_denylist``.
+GMS_DENYLIST = frozenset({
+    "com.google.android.gms",     # Google Play Services (.persistent/.ui/.unstable/... all share this pkg)
+    "com.android.vending",        # Google Play Store
+    "com.google.android.gsf",     # Google Services Framework
+})
 
 
 def set_identity_props(
@@ -1231,6 +1275,123 @@ def set_identity_props(
         shell.sh(f"mkdir -p {_MODULE_DIR}/config 2>/dev/null; "
                  f"printf 'FILE_ENABLED\\n{lines}' >> {_sh_quote(conf)} 2>/dev/null || true")
     return to_set
+
+
+def set_build_props(
+    client: "VMOSClient",
+    pad_code: str,
+    *,
+    model: Optional[str] = None,
+    manufacturer: Optional[str] = None,
+    brand: Optional[str] = None,
+    device: Optional[str] = None,
+    product: Optional[str] = None,
+    fingerprint: Optional[str] = None,
+    release: Optional[str] = None,
+    sdk_int: Optional[Any] = None,
+    persist_module: bool = True,
+) -> Dict[str, str]:
+    """Set the ``persist.vmos.spoof.build.*`` props the XPose plugin reads to spoof
+    ``Build.MODEL`` / ``MANUFACTURER`` / ``BRAND`` / ``DEVICE`` / ``PRODUCT`` /
+    ``FINGERPRINT`` and ``Build.VERSION.RELEASE`` **app-scoped**.
+
+    This is the Build.* counterpart of :func:`set_identity_props`. The plugin
+    applies these only in scoped apps and **never** inside GMS/Play (its
+    ``appMain`` denylist guard returns first), so Google Play Services / Play
+    Store keep their genuine identity — the GMS-safe design. A system-wide build
+    spoof instead crash-loops ``com.google.android.gms.persistent``.
+
+    Only the arguments you pass are written. ``sdk_int`` writes
+    ``persist.vmos.spoof.build.sdk_int`` but is a **no-op until you manually
+    enable the SDK_INT line in the plugin** — raising ``SDK_INT`` app-scoped on a
+    real lower-SDK framework can crash the target app (``NoSuchMethodError`` /
+    ``NoClassDefFoundError``); enable it per-app only after testing. Applied
+    immediately via Magisk ``resetprop``; when ``persist_module`` is true the
+    values are also appended to the ``vmos_spoof`` module's ``custom.conf`` (the
+    same mechanism :func:`set_identity_props` uses). Returns the ``prop -> value``
+    map written.
+    """
+    shell = PadRootShell(client, pad_code)
+    values = {
+        "model": model, "manufacturer": manufacturer, "brand": brand,
+        "device": device, "product": product, "fingerprint": fingerprint,
+        "release": release,
+        "sdk_int": None if sdk_int is None else str(sdk_int),
+    }
+    to_set = {_BUILD_PROPS[k]: v for k, v in values.items() if v}
+    if not to_set:
+        return {}
+    _run_batched(shell, resetprop_commands(to_set))
+    if persist_module:
+        lines = "".join(f"ENABLED,{k},{v}\\n" for k, v in to_set.items())
+        conf = f"{_MODULE_DIR}/config/custom.conf"
+        shell.sh(f"mkdir -p {_MODULE_DIR}/config 2>/dev/null; "
+                 f"printf 'FILE_ENABLED\\n{lines}' >> {_sh_quote(conf)} 2>/dev/null || true")
+    return to_set
+
+
+def list_installed_packages(
+    shell: "PadRootShell",
+    *,
+    user: bool = True,
+    system: bool = True,
+) -> List[str]:
+    """Return the package names installed on the pad via ``pm list packages``.
+
+    Reads through the root shell — ``pm list packages -3`` for user (third-party)
+    apps and ``pm list packages -s`` for system apps — and parses the
+    ``package:<name>`` lines into a sorted, de-duplicated list. This is the
+    enumeration half of the app-scoped denylist model (:func:`app_scoped_targets`).
+    """
+    cmds: List[str] = []
+    if user:
+        cmds.append("pm list packages -3")
+    if system:
+        cmds.append("pm list packages -s")
+    if not cmds:
+        return []
+    out = shell.sh(" ; ".join(cmds))
+    pkgs = set()
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("package:"):
+            name = line.split(":", 1)[1].strip()
+            if name:
+                pkgs.add(name)
+    return sorted(pkgs)
+
+
+def app_scoped_targets(
+    shell: "PadRootShell",
+    *,
+    denylist: Iterable[str] = GMS_DENYLIST,
+    extra_denylist: Optional[Iterable[str]] = None,
+    user: bool = True,
+    system: bool = True,
+) -> List[str]:
+    """Installed packages **MINUS** the GMS/Play denylist — the app-scoped hook targets.
+
+    Implements the verified **"all installed apps EXCEPT GMS/Play"** scoping
+    (design P5-ARCH-005). Assign the result to ``profile.runtime.target_apps`` and
+    let :class:`vmos.manager.JavaHookBackend` load one plugin patch per package.
+
+    .. important::
+       ``apmt`` is **per-package — there is no wildcard/all-apps scope**, so each
+       returned package needs its own ``apmt patch add`` (one patch per app in
+       ``apmt patch list``). Enumeration is a **point-in-time snapshot**: apps
+       installed *later* are not covered, so **re-run this (and re-apply) after
+       installing new apps**. GMS / Play / GSF are always excluded so they keep
+       genuine identity; the plugin's ``appMain`` enforces the same denylist
+       defensively even if a patch is mis-added to one of them.
+
+    ``denylist`` defaults to :data:`GMS_DENYLIST`; ``extra_denylist`` adds more
+    packages to exclude (e.g. your own controller app) without replacing it.
+    """
+    deny = set(denylist)
+    if extra_denylist:
+        deny.update(extra_denylist)
+    return [p for p in list_installed_packages(shell, user=user, system=system)
+            if p not in deny]
 
 
 def load_xpose_plugin(

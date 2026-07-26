@@ -32,16 +32,18 @@ from __future__ import annotations
 
 import abc
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
 
 from .exceptions import ProfileValidationError
 from .profile import Profile, validate
 from .spoof import (
     PadRootShell,
+    app_scoped_targets,
     apply_profile as _layer1_apply,
     load_xpose_plugin,
     remove_spoof as _layer1_remove,
     remove_xpose_plugin,
+    set_build_props,
     set_identity_props,
     verify_profile as _layer1_verify,
 )
@@ -140,14 +142,24 @@ class SystemApplierBackend(Backend):
 
 
 class JavaHookBackend(Backend):
-    """Layer 2 — framework-held getters via the private XPose plugin.
+    """Layer 2 — framework-held getters + ``Build.*`` via the private XPose plugin.
 
     Sets the ``persist.vmos.spoof.*`` values the plugin returns for
     ``getImei``/``getSubscriberId``/``AdvertisingIdClient.getId``/
     ``WifiInfo.getMacAddress``/``Build.getSerial``/``MediaDrm``/
-    ``Settings.Secure`` (read from :meth:`Profile.identity_kwargs`), and — when an
-    APK source is given — loads the plugin into each ``profile.runtime.target_apps``
-    package via ``apmt``.
+    ``Settings.Secure`` (read from :meth:`Profile.identity_kwargs`), and — when
+    ``spoof_build`` is on (default) — the ``persist.vmos.spoof.build.*`` values the
+    plugin uses to spoof ``Build.MODEL``/``BRAND``/``FINGERPRINT``/… app-scoped
+    (from :meth:`Profile.build_hook_kwargs`). When an APK source is given it also
+    loads the plugin into each ``profile.runtime.target_apps`` package via ``apmt``.
+
+    **Scoping (denylist model).** ``apmt`` is per-package with no wildcard, so the
+    scope is *"every installed app EXCEPT GMS/Play"*. With ``auto_scope_all=True``
+    the backend enumerates the pad's installed packages minus
+    :data:`vmos.spoof.GMS_DENYLIST` (plus ``scope_denylist_extra``) at apply time
+    and writes them onto ``profile.runtime.target_apps`` — so GMS/Play keep their
+    genuine identity and never crash. Newly-installed apps are not covered until a
+    re-run. The plugin's ``appMain`` enforces the same denylist defensively.
 
     The plugin is built once (see ``xpose_plugin/``); provide ``apk_url`` or
     ``apk_path`` only when it needs (re)loading. If neither is given, the backend
@@ -156,7 +168,7 @@ class JavaHookBackend(Backend):
 
     name = "java_hook"
     layer = 2
-    sections = ("telephony", "identity", "network")
+    sections = ("build", "telephony", "identity", "network")
 
     def __init__(
         self,
@@ -167,6 +179,9 @@ class JavaHookBackend(Backend):
         apk_path: Optional[str] = None,
         plugin_name: str = "vmos_profile",
         persist_module: bool = True,
+        spoof_build: bool = True,
+        auto_scope_all: bool = False,
+        scope_denylist_extra: Optional[Iterable[str]] = None,
     ) -> None:
         if apk_url and apk_path:
             raise ValueError("provide at most one of apk_url or apk_path")
@@ -176,16 +191,36 @@ class JavaHookBackend(Backend):
         self.apk_path = apk_path
         self.plugin_name = plugin_name
         self.persist_module = persist_module
+        self.spoof_build = spoof_build
+        self.auto_scope_all = auto_scope_all
+        self.scope_denylist_extra = scope_denylist_extra
 
     def _patch_name(self, pkg: str) -> str:
         return f"{self.plugin_name}_{_PKG_SAFE.sub('_', pkg).strip('_')}"
 
     def apply(self, profile: Profile) -> Dict[str, Any]:
-        kwargs = profile.identity_kwargs()
+        # Optionally derive the scope = "all installed apps EXCEPT GMS/Play" and
+        # write it onto the profile so both this backend and callers see it.
+        scoped_note = None
+        if self.auto_scope_all:
+            shell = PadRootShell(self.client, self.pad_code)
+            targets = app_scoped_targets(shell, extra_denylist=self.scope_denylist_extra)
+            profile.runtime.target_apps = targets
+            scoped_note = (f"auto-scoped {len(targets)} installed app(s) minus the "
+                           f"GMS/Play denylist; re-run after installing new apps "
+                           f"(apmt is per-package, no wildcard)")
+        # Layer-2 identity getters (persist.vmos.spoof.*).
         props = set_identity_props(
             self.client, self.pad_code,
-            persist_module=self.persist_module, **kwargs,
+            persist_module=self.persist_module, **profile.identity_kwargs(),
         )
+        # Layer-2 app-scoped Build.* (persist.vmos.spoof.build.*), unless disabled.
+        build_props: Dict[str, str] = {}
+        if self.spoof_build:
+            build_props = set_build_props(
+                self.client, self.pad_code,
+                persist_module=self.persist_module, **profile.build_hook_kwargs(),
+            )
         loaded: List[Dict[str, Any]] = []
         targets = list(profile.runtime.target_apps)
         has_apk = bool(self.apk_url or self.apk_path)
@@ -197,13 +232,16 @@ class JavaHookBackend(Backend):
                     apk_url=self.apk_url, apk_path=self.apk_path,
                 )
                 loaded.append({"pkg": pkg, "name": self._patch_name(pkg), "out": out})
-        note = None
+        note = scoped_note
         if targets and not has_apk:
-            note = ("plugin load skipped: no apk_url/apk_path given "
-                    "(assuming the plugin is already loaded); props still refreshed")
+            load_note = ("plugin load skipped: no apk_url/apk_path given "
+                         "(assuming the plugin is already loaded); props still refreshed")
+            note = f"{note}; {load_note}" if note else load_note
         elif not targets:
-            note = "no runtime.target_apps in profile: props set but no app scoped"
-        return {"backend": self.name, "props_set": props, "loaded": loaded, "note": note}
+            empty_note = "no runtime.target_apps in profile: props set but no app scoped"
+            note = f"{note}; {empty_note}" if note else empty_note
+        return {"backend": self.name, "props_set": props, "build_props_set": build_props,
+                "loaded": loaded, "note": note}
 
     def verify(self, profile: Profile) -> Dict[str, Any]:
         """Read the ``persist.vmos.spoof.*`` props back with ``getprop``.
@@ -356,19 +394,26 @@ def standard_manager(
     apk_path: Optional[str] = None,
     persist: bool = True,
     validate_before_apply: bool = True,
+    auto_scope_all: bool = False,
+    scope_denylist_extra: Optional[Iterable[str]] = None,
 ) -> ProfileManager:
     """A :class:`ProfileManager` wired with the two verified backends.
 
     Layer 1 (:class:`SystemApplierBackend`) then Layer 2
     (:class:`JavaHookBackend`) — the combined provisioning proven live. Provide
     ``apk_url``/``apk_path`` only when the XPose plugin needs (re)loading.
+
+    Set ``auto_scope_all=True`` to have the Java Hook Backend scope **every
+    installed app EXCEPT GMS/Play** (:data:`vmos.spoof.GMS_DENYLIST` plus
+    ``scope_denylist_extra``) at apply time — the GMS-safe app-scoped model.
     """
     return ProfileManager(
         client, pad_code,
         backends=[
             SystemApplierBackend(client, pad_code, persist=persist),
             JavaHookBackend(client, pad_code, apk_url=apk_url, apk_path=apk_path,
-                            persist_module=persist),
+                            persist_module=persist, auto_scope_all=auto_scope_all,
+                            scope_denylist_extra=scope_denylist_extra),
         ],
         validate_before_apply=validate_before_apply,
     )

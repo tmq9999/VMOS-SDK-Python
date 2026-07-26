@@ -325,14 +325,18 @@ class Profile:
         )
 
     def identity_props(self) -> Dict[str, str]:
-        """Layer 2: the ``persist.vmos.spoof.*`` map the XPose plugin reads."""
+        """Layer 2: the ``persist.vmos.spoof.*`` map the XPose plugin reads.
+
+        The prop keys match the compiled plugin's reads exactly — note the phone
+        number is ``persist.vmos.spoof.line`` (NOT ``.line1``); see
+        :data:`vmos.spoof._IDENTITY_PROPS`."""
         t, i, n, b = self.telephony, self.identity, self.network, self.build
         m = {
             "persist.vmos.spoof.imei": t.imei[0] if t.imei else "",
             "persist.vmos.spoof.meid": t.meid,
             "persist.vmos.spoof.imsi": t.imsi,
             "persist.vmos.spoof.iccid": t.iccid,
-            "persist.vmos.spoof.line1": t.line1,
+            "persist.vmos.spoof.line": t.line1,
             "persist.vmos.spoof.androidid": i.android_id,
             "persist.vmos.spoof.gaid": i.gaid,
             "persist.vmos.spoof.oaid": i.oaid,
@@ -340,6 +344,44 @@ class Profile:
             "persist.vmos.spoof.bssid": n.bssid,
             "persist.vmos.spoof.serial": b.serial,
             "persist.vmos.spoof.drmid": i.media_drm_id,
+        }
+        return {k: v for k, v in m.items() if v}
+
+    def build_hook_props(self) -> Dict[str, str]:
+        """Layer 2 (Build.*): the ``persist.vmos.spoof.build.*`` map the XPose
+        plugin reads to spoof ``Build.MODEL`` / ``MANUFACTURER`` / ``BRAND`` /
+        ``DEVICE`` / ``PRODUCT`` / ``FINGERPRINT`` and ``Build.VERSION.RELEASE``
+        **app-scoped** (never inside GMS/Play). Only non-empty fields are
+        returned. ``SDK_INT`` is intentionally omitted — the plugin keeps it
+        disabled by default because app-scoped SDK skew can crash the target app.
+        """
+        b = self.build
+        m = {
+            "persist.vmos.spoof.build.model": b.model,
+            "persist.vmos.spoof.build.manufacturer": b.manufacturer,
+            "persist.vmos.spoof.build.brand": b.brand,
+            "persist.vmos.spoof.build.device": b.device,
+            "persist.vmos.spoof.build.product": b.product,
+            "persist.vmos.spoof.build.fingerprint": b.fingerprint,
+            "persist.vmos.spoof.build.release": b.release,
+        }
+        return {k: v for k, v in m.items() if v}
+
+    def build_hook_kwargs(self) -> Dict[str, str]:
+        """Layer 2 (Build.*): keyword arguments for
+        :func:`vmos.spoof.set_build_props`, taken from the ``build`` section, so
+        the Java Hook Backend can spoof ``Build.*`` straight from this Profile.
+        Only non-empty fields are returned; ``sdk_int`` is omitted by design (see
+        :meth:`build_hook_props`)."""
+        b = self.build
+        m = {
+            "model": b.model,
+            "manufacturer": b.manufacturer,
+            "brand": b.brand,
+            "device": b.device,
+            "product": b.product,
+            "fingerprint": b.fingerprint,
+            "release": b.release,
         }
         return {k: v for k, v in m.items() if v}
 
