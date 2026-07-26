@@ -37,6 +37,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
 from .exceptions import ProfileValidationError
 from .profile import Profile, validate
 from .spoof import (
+    GMS_DENYLIST,
     PadRootShell,
     app_scoped_targets,
     apply_profile as _layer1_apply,
@@ -222,7 +223,14 @@ class JavaHookBackend(Backend):
                 persist_module=self.persist_module, **profile.build_hook_kwargs(),
             )
         loaded: List[Dict[str, Any]] = []
-        targets = list(profile.runtime.target_apps)
+        requested = list(profile.runtime.target_apps)
+        # HARD GUARD (design §B): never app-scope an identity hook into GMS or the
+        # Play Store — they must read the *real* identity, or GMS desyncs
+        # (checkin / Play Integrity / attestation) and can crash or go uncertified.
+        # Excluded here even if a profile lists them, and load_xpose_plugin refuses
+        # them too (defense in depth).
+        excluded = [p for p in requested if p in GMS_DENYLIST]
+        targets = [p for p in requested if p not in GMS_DENYLIST]
         has_apk = bool(self.apk_url or self.apk_path)
         if targets and has_apk:
             for pkg in targets:
@@ -232,16 +240,22 @@ class JavaHookBackend(Backend):
                     apk_url=self.apk_url, apk_path=self.apk_path,
                 )
                 loaded.append({"pkg": pkg, "name": self._patch_name(pkg), "out": out})
-        note = scoped_note
+        # Merge all diagnostics into one note: the auto-scope summary (PR #4),
+        # the GMS/Play exclusion (PR #3), and the load/empty-target notes.
+        notes: List[str] = []
+        if scoped_note:
+            notes.append(scoped_note)
+        if excluded:
+            notes.append("excluded from scoping (GMS/Play must read the real identity): "
+                         + ", ".join(excluded))
         if targets and not has_apk:
-            load_note = ("plugin load skipped: no apk_url/apk_path given "
+            notes.append("plugin load skipped: no apk_url/apk_path given "
                          "(assuming the plugin is already loaded); props still refreshed")
-            note = f"{note}; {load_note}" if note else load_note
         elif not targets:
-            empty_note = "no runtime.target_apps in profile: props set but no app scoped"
-            note = f"{note}; {empty_note}" if note else empty_note
+            notes.append("no scopable runtime.target_apps in profile: props set but no app scoped")
+        note = "; ".join(notes) if notes else None
         return {"backend": self.name, "props_set": props, "build_props_set": build_props,
-                "loaded": loaded, "note": note}
+                "loaded": loaded, "excluded": excluded, "note": note}
 
     def verify(self, profile: Profile) -> Dict[str, Any]:
         """Read the ``persist.vmos.spoof.*`` props back with ``getprop``.

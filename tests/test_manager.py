@@ -165,3 +165,24 @@ def test_manager_apply_is_offline_safe_for_construction():
     mgr = ProfileManager(backends=[])
     assert mgr.backends == []
     assert mgr.apply.__doc__  # sanity: method present
+
+
+def test_java_hook_excludes_gms_and_vending_from_scoping():
+    # Design §B hard guard: an identity hook must NEVER be deployed into GMS or the
+    # Play Store (they must read the real identity). Even if a profile lists them,
+    # load_xpose_plugin must never be called for those two packages.
+    pad = StatefulFakePad()
+    prof = generate_profile(
+        "pixel10pro", "VN", "Viettel", seed=20260724,
+        target_apps=["com.google.android.gms", "com.android.vending", "com.liuzh.deviceinfo"],
+    )
+    backend = JavaHookBackend(pad, "ACP1", apk_url="https://h/p.apk", plugin_name="vmos_profile")
+    res = backend.apply(prof)
+    assert [l["pkg"] for l in res["loaded"]] == ["com.liuzh.deviceinfo"]  # only the real app
+    assert res["excluded"] == ["com.google.android.gms", "com.android.vending"]
+    joined = "\n".join(pad.scripts)
+    assert "apmt patch add" in joined                       # the real app WAS scoped
+    assert "com.google.android.gms" not in joined           # GMS never touched
+    assert "com.android.vending" not in joined              # Play never touched
+    # props are still set for the whole device (system-wide inputs are inert for GMS)
+    assert pad.props["persist.vmos.spoof.imei"] == prof.telephony.imei[0]
